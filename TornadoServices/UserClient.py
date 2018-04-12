@@ -1,9 +1,11 @@
-from DIRAC.Core.DISET.RPCClient import RPCClient
 from time import time
+from TornadoClient import RPCClient
 
-global service 
 service = RPCClient('Framework/User')
 
+"""
+Following are just exemple for calls
+"""
 def menu():
     print "1/ list users"
     print "2/ add user"
@@ -40,7 +42,7 @@ def addUser():
 def editUser():
     uid = raw_input('Id: ')
     user = raw_input('Name: ')
-    response = service.editUser(int(uid), user)
+    response =  service.editUser(uid, user)
     if not response['OK']:
         print 'ERROR:', response
 
