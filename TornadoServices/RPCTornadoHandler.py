@@ -2,6 +2,8 @@ from tornado.web import RequestHandler
 from tornado.escape import json_encode, url_unescape
 from DIRAC.Core.Security import X509Chain
 import OpenSSL.crypto
+from time import time
+from DIRAC.Core.Security.ProxyInfo import getProxyInfo
 
 """ 
   This handler get Remote Requests and execute them
@@ -30,12 +32,12 @@ class RPCTornadoHandler(RequestHandler):
   def prepare(self):
     """ Create a new class ? """
     x509 = X509Chain.X509Chain()
-    certificate = self.request.get_ssl_certificate(True)
-    x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_ASN1, certificate)
+    x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_ASN1, self.request.get_ssl_certificate(True))
 
     certificate_subject = x509.get_subject().get_components()
     certificate_issuer = x509.get_issuer().get_components()
     certificate_not_after = x509.get_notAfter()
+    certificate_group = x509.get_extension(1).get_data()
 
     print('============ USER CERTIFICATE ============')
     print('SUBJECT:')
@@ -50,17 +52,18 @@ class RPCTornadoHandler(RequestHandler):
       chain += '/%s=%s' % (s[0], s[1])
     print chain
     print('\nEXPIRE: ' + certificate_not_after)
+    print('\nGROUP:  ' + certificate_group)
 
   """ 
     HTTP GET
     Get the correct handler from a service already loaded and execute RPC Call
   """
 
-  def get(self, service, RPC):
-
+  def get(self, service, procedure):
+    print time() #Just to provide visual feedback when we repeat same request...
     print('============ HTTP GET Request ============')
     print('Service:   ' + service)
-    print('Procedure: ' + RPC)
+    print('Procedure: ' + procedure)
     print('Arguments: ' + str(self.args))
     print('==========================================')
 
@@ -72,7 +75,7 @@ class RPCTornadoHandler(RequestHandler):
 
     """ Here the call can fail (Wrong  number of arguments for example) """
     try:
-      method = getattr(handler, RPC)
+      method = getattr(handler, procedure)
       self.write(json_encode(method(*self.args)))
     except Exception, e:
       self.write(json_encode(S_ERROR(str(e))))
