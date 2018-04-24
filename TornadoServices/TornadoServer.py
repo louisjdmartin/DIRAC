@@ -1,7 +1,6 @@
 """
 TORNADO SERVER
 Receive RPC and return JSON to client
-Also manage services start/stop 
 """
 
 __RCSID__ = "$Id$"
@@ -12,7 +11,6 @@ from tornado.ioloop import IOLoop
 from tornado.escape import json_encode
 from DIRAC import S_OK, gLogger
 from RPCTornadoHandler import TornadoUserHandler
-from UserHandler import UserHandler
 import ssl, os
 
 

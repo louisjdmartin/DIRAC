@@ -11,7 +11,7 @@ from hypothesis import given, settings
 from hypothesis.strategies import text
 
 from DIRAC.Core.DISET.RPCClient import RPCClient as RPCClientDIRAC
-from DIRAC.Core.Base.UserDB import UserDB
+from DIRAC.FrameworkSystem.Service.UserDB import UserDB
 from TornadoClient import TornadoClient as RPCClientTornado
 
 from pytest import mark

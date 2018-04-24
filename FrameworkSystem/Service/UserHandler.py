@@ -5,7 +5,7 @@ __RCSID__ = "$Id$"
 
 from DIRAC import S_OK
 from DIRAC.Core.DISET.RequestHandler import RequestHandler
-from DIRAC.Core.Base.UserDB import UserDB
+from DIRAC.FrameworkSystem.Service.UserDB import UserDB
 class UserHandler(RequestHandler):
   """ Dummy service for testing new DIRAC protocol (DISET -> HTTPS) """
 
