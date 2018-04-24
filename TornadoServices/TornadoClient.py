@@ -6,7 +6,7 @@ import os, ssl
 from DIRAC.Core.Utilities.Proxy import executeWithUserProxy
 import DIRAC.Core.Security.BaseSecurity
 
-class RPCClient(object):
+class TornadoClient(object):
   def __init__(self, service):
     """ 
       Defining usefull variables
@@ -14,7 +14,7 @@ class RPCClient(object):
     """
     self.service  = service
     self.port     = 8888
-    self.domain   = 'dirac.cern.ch'
+    self.domain   = 'dirac.cern.ch' # 127.0.0.1 in hard in /etc/hosts
     self.protocol = 'https'
     self.RPCroot  = '/'
 
@@ -48,9 +48,7 @@ class RPCClient(object):
     request = HTTPRequest(
       self.rootUrl+"Service/"+self.service+"/"+procedure,
       headers = h, 
-      #ssl_options = ssl_ctx,
       client_cert = os.path.join('/tmp/', "x509up_u0"),
-      #client_key =  os.path.join('/root/.globus/', "userkey.pem"),
       ca_certs = os.path.join('/root/dev/etc/grid-security/','hostcert.pem')
     )
 

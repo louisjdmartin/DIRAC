@@ -5,53 +5,27 @@ Also manage services start/stop
 """
 
 __RCSID__ = "$Id$"
-
+from DIRAC.FrameworkSystem.Service.UserDB import UserDB
 from tornado.httpserver import HTTPServer
 from tornado.web import RequestHandler, Application, url
 from tornado.ioloop import IOLoop
 from tornado.escape import json_encode
 from DIRAC import S_OK, gLogger
-from fakeDiracServices import DiracServices
-from RPCTornadoHandler import RPCTornadoHandler
+from RPCTornadoHandler import TornadoUserHandler
+from UserHandler import UserHandler
 import ssl, os
-
-''' It work, but it's also useless...
-class StartServiceHandler(RequestHandler):
-  """
-  This class start a service throught DiracServices
-  """
-  def initialize(self, DiracServices):
-    self.diracServices = DiracServices
-
-  def get(self, service):
-    self.diracServices.startService(service)
-    self.write(json_encode(S_OK("Service started at /Service/"+service)))
-
-class StopServiceHandler(RequestHandler):
-  """
-  This class stop a service
-  """
-  def initialize(self, DiracServices):
-    self.diracServices = DiracServices
-
-  def get(self, service):
-    self.diracServices.stopService(service)
-    self.write(json_encode(S_OK("Service "+service+" stopped")))
-'''
 
 
 
 def startTornado():
   gLogger.notice("TORNADO RESTART")
-  diracServices = DiracServices()
+  userDB = UserDB()
+
+
   router = Application([
-      url(r"/Service/([A-Za-z0-9/]+)/([A-Za-z0-9]+)", RPCTornadoHandler, dict(DiracServices=diracServices)),
-      #url(r"/Start/([A-Za-z0-9/]+)", StartServiceHandler, dict(DiracServices=diracServices)),
-      #url(r"/Stop/([A-Za-z0-9/]+)", StopServiceHandler, dict(DiracServices=diracServices))
+      url(r"/Service/Framework/User/([A-Za-z0-9]+)", TornadoUserHandler, dict(UserDB=userDB)),
   ], debug=True)
 
-
-  diracServices.startService('Framework/User')
 
   cert_dir = '/root/dev/etc/grid-security/'
 
