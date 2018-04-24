@@ -16,15 +16,19 @@ import ssl, os
 
 
 def startTornado():
-  gLogger.notice("TORNADO RESTART")
+  # Just for visual feedback when there is an autoreload
+  # Must be deleted later
+  gLogger.notice("TORNADO RESTART") 
+
+
+  # TODO: Dynamic rooting (with dirac.cfg ?)
   userDB = UserDB()
-
-
   router = Application([
       url(r"/Service/Framework/User/([A-Za-z0-9]+)", TornadoUserHandler, dict(UserDB=userDB)),
   ], debug=True)
 
 
+  # TODO: get path automatically
   cert_dir = '/root/dev/etc/grid-security/'
 
 
@@ -32,9 +36,10 @@ def startTornado():
   ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
 
   # Load host certificates
-  # TODO: Dynamic path
   ssl_ctx.load_cert_chain(os.path.join(cert_dir, "hostcert.pem"),
                           os.path.join(cert_dir, "hostkey.pem"))
+
+  # TODO: get path automatically
   ssl_ctx.load_verify_locations(os.path.join('/root/dev/etc/grid-security/','hostcert.pem'))
 
 
@@ -43,7 +48,7 @@ def startTornado():
 
 
 
-
+  # Start server
   server = HTTPServer(router, ssl_options=ssl_ctx)
   server.listen(8888)
   IOLoop.current().start()

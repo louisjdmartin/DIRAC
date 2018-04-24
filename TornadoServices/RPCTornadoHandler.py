@@ -7,14 +7,15 @@ from DIRAC import S_OK, S_ERROR
 
 """ 
   Dummy handler who manage small database (1 table - Id:UserName)
+  Method for RPC are at the end of the file
 """
 
 
 class TornadoUserHandler(RequestHandler):
   """
     initialize
-    Get the services opened
     Get arguments from headers (if exists)
+    UserDB is provided via dict in TornadoServer
   """
   def initialize(self, UserDB):
     self.userDB = UserDB
@@ -34,7 +35,9 @@ class TornadoUserHandler(RequestHandler):
 
   """ 
     HTTP GET
-    Call the function
+    Call the function sended via URL
+    procedure is provided from the URL following rules from TornadoServer
+    TODO: see if post can be better than get
   """
   def get(self, procedure):
     args_escaped = self.request.headers.get_list('args')
