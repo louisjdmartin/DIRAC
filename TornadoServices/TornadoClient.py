@@ -14,7 +14,7 @@ class TornadoClient(object):
     """
     self.service  = service
     self.port     = 8888
-    # 127.0.0.1 in hard in /etc/hosts, should use this url because Tornado check domain name in host certificate and sor refuse 'https://localhost'
+    # 127.0.0.1 in hard in /etc/hosts, should use this url because Tornado check domain name in host certificate and so refuse 'https://localhost'
     self.domain   = 'dirac.cern.ch' 
     self.protocol = 'https'
     self.RPCroot  = '/'

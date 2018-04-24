@@ -1,7 +1,6 @@
 import csv
 import matplotlib.pyplot as plt
 
-tes
 testTornado = ['Tornado/results/results_2018.04.24_12.01.01']
 testDirac = ['Dirac/results/results_2018.04.24_12.11.05']
 
