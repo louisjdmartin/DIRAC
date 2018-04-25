@@ -5,6 +5,7 @@ import OpenSSL.crypto
 from DIRAC.Core.Security.ProxyInfo import getProxyInfo
 from DIRAC import S_OK, S_ERROR
 
+
 """ 
   Dummy handler who manage small database (1 table - Id:UserName)
   Method for RPC are at the end of the file
@@ -12,14 +13,13 @@ from DIRAC import S_OK, S_ERROR
 
 
 class TornadoUserHandler(RequestHandler):
+
   """
     initialize
-    Get arguments from headers (if exists)
     UserDB is provided via dict in TornadoServer
   """
   def initialize(self, UserDB):
     self.userDB = UserDB
-
 
 
   """ 

@@ -9,6 +9,7 @@ from tornado.httpserver import HTTPServer
 from tornado.web import RequestHandler, Application, url
 from tornado.ioloop import IOLoop
 from tornado.escape import json_encode
+from tornado import gen
 from DIRAC import S_OK, gLogger
 from RPCTornadoHandler import TornadoUserHandler
 import ssl, os
@@ -48,9 +49,12 @@ def startTornado():
 
 
 
+
+
   # Start server
   server = HTTPServer(router, ssl_options=ssl_ctx)
   server.listen(8888)
   IOLoop.current().start()
+
 
 startTornado()
