@@ -1,4 +1,5 @@
-""" Test for UserDB
+""" 
+    Test if same service work on DIRAC and TORNADO
     Testing if basic operation works
 """
 
@@ -11,7 +12,6 @@ from hypothesis import given, settings
 from hypothesis.strategies import text
 
 from DIRAC.Core.DISET.RPCClient import RPCClient as RPCClientDIRAC
-from DIRAC.FrameworkSystem.Service.UserDB import UserDB
 from TornadoClient import TornadoClient as RPCClientTornado
 
 from pytest import mark
@@ -44,13 +44,4 @@ def test_insert_get_update_service(rpc,s,s2):
     service.editUser(userID, s2)
     User = service.getUserName(userID)
     assert User['Value'] == s2
-
-    # Delete a user
-    service.removeUser(userID)
-    deletedUser = service.getUserName(userID)
-
-    # Check if User is deleted
-    assert deletedUser['OK'] == False
-
-
 

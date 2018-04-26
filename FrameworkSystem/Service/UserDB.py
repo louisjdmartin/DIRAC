@@ -13,7 +13,10 @@ class UserDB(DB):
     """
     Initialize the DB
     """
-    DB.__init__(self, 'UserDB', 'Framework/UserDB', 10)
+
+    # Initialization of DB, last parameter represent number of request to queue
+    # Documentation advice to use 10 
+    super(UserDB, self).__init__('UserDB', 'Framework/UserDB', 10)
     retVal = self.__initializeDB()
     if not retVal['OK']:
       raise Exception("Can't create tables: %s" % retVal['Message'])
@@ -36,25 +39,38 @@ class UserDB(DB):
 
     return self._createTables(tablesD)
 
-  def addUser(self, something):
-    """ Add a user """
-    gLogger.verbose("Insert " + something + " in DB")
-    return self.insertFields('user_mytable', ['Name'], [something])
-
-  def removeUser(self, uid):
-    """ Remove a user """
-    return self. _query('DELETE FROM user_mytable WHERE Id=' + str(uid))
+  def addUser(self, userName):
+    """ 
+    Add a user 
+      :param str userName: The name of the user we want to add
+      :return: S_OK or S_ERROR
+    """
+    gLogger.verbose("Insert %s in DB" % userName)
+    return self.insertFields('user_mytable', ['Name'], [userName])
 
   def editUser(self, uid, value):
-    """ Edit a user """
+    """ 
+      Edit a user 
+      :param int uid: The Id of the user in database
+      :param str value: New user name
+      :return: S_OK or S_ERROR
+    """
     return self.updateFields('user_mytable', updateDict={'Name': value}, condDict={'Id': uid})
 
   def getUserName(self, uid):
-    """ Get a user """
+    """ 
+      Get a user 
+      :param int uid: The Id of the user in database
+      :return: S_OK with S_OK['Value'] = TheUserName or S_ERROR if not found
+    """
     user = self.getFields('user_mytable', condDict={'Id': uid})
     if len(user['Value']) == 1:
       return S_OK(user['Value'][0][1])
     return S_ERROR('USER NOT FOUND')
 
   def listUsers(self):
+    """
+      List all users
+      :return: S_OK with S_OK['Value'] list of [UserId, UserName]
+    """
     return self._query('SELECT * FROM user_mytable')

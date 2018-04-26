@@ -35,6 +35,7 @@ def startTornado():
 
   #Define SSLContext
   ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+  #ssl_ctx = ssl.create_default_context()
 
   # Load host certificates
   ssl_ctx.load_cert_chain(os.path.join(cert_dir, "hostcert.pem"),
