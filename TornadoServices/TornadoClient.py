@@ -1,10 +1,9 @@
 from tornado.httputil import HTTPHeaders
-from tornado.httpclient import HTTPRequest, HTTPResponse,HTTPClient, AsyncHTTPClient
-from tornado.escape import json_decode,url_escape
-from tornado import ioloop
+from tornado.httpclient import HTTPRequest, HTTPResponse,HTTPClient
+import json
 import os, ssl
-from DIRAC.Core.Utilities.Proxy import executeWithUserProxy
-import DIRAC.Core.Security.BaseSecurity
+import httplib
+import urllib
 
 class TornadoClient(object):
   def __init__(self, service):
@@ -16,10 +15,8 @@ class TornadoClient(object):
     self.port     = 8888
     # 127.0.0.1 in hard in /etc/hosts, should use this url because Tornado check domain name in host certificate and so refuse 'https://localhost'
     self.domain   = 'dirac.cern.ch' 
-    self.protocol = 'https'
     self.RPCroot  = '/'
 
-    self.rootUrl = self.protocol+"://"+self.domain+":"+str(self.port)+self.RPCroot
 
   def __getattr__(self,attrname):
     """ 
@@ -34,27 +31,30 @@ class TornadoClient(object):
     """
       This function call a remote service
     """
-    # Init the HTTP Client
-    http_client = HTTPClient()
 
-    # Write arguments in HTTP headers
-    h=HTTPHeaders()
-    if args:
-      for i in args:
-        h.add("args", url_escape(str(i)))
+    # Encode arguments for POST request
+    args = urllib.urlencode({'args':json.dumps(args)})
 
+    # Create SSL_CTX and load client/CA certificates
+    ssl_ctx = ssl.create_default_context()
+    ssl_ctx.load_cert_chain(os.path.join('/tmp/', "x509up_u0"))
+    ssl_ctx.load_verify_locations(os.path.join('/root/dev/etc/grid-security/','hostcert.pem'))
 
-
-    # Prepare the request
-    request = HTTPRequest(
-      self.rootUrl+"Service/"+self.service+"/"+procedure,
-      headers = h, 
-      client_cert = os.path.join('/tmp/', "x509up_u0"),
-      ca_certs = os.path.join('/root/dev/etc/grid-security/','hostcert.pem')
+    # Create HTTP Connection
+    headers = {"Content-type": "application/x-www-form-urlencoded", "Accept":"application/json"}
+    conn = httplib.HTTPSConnection(
+      self.domain, 
+      port=self.port, 
+      context=ssl_ctx,
     )
 
-
-
-    response =  http_client.fetch(request)
-    # Return decoded response
-    return json_decode(response.body)
+    # Start request
+    conn.request(
+      "POST", 
+      self.RPCroot+"Service/"+self.service+"/"+procedure,
+      args,
+      headers
+    )
+    
+    # Return result after conversion json->python list
+    return json.load(conn.getresponse())

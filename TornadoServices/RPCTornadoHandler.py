@@ -1,5 +1,5 @@
 from tornado.web import RequestHandler
-from tornado.escape import json_encode, url_unescape
+from tornado.escape import json_encode, json_decode, url_unescape
 import OpenSSL.crypto
 from DIRAC.Core.Security.ProxyInfo import getProxyInfo
 from DIRAC import S_OK, S_ERROR
@@ -19,6 +19,7 @@ class TornadoUserHandler(RequestHandler):
       initialize
       :param UserDB: Handler connected to database, provided via dict in TornadoServer
     """
+    print '============== INIT =============='
     self.userDB = UserDB
 
 
@@ -33,11 +34,8 @@ class TornadoUserHandler(RequestHandler):
 
 
 
-  def post(self, procedure):
-    print '==========================POST'
-    self.get(procedure)
   
-  def get(self, procedure):
+  def post(self, procedure):
     """ 
     HTTP GET
       Call the function sended via URL and write the returned value to the connected client
@@ -45,8 +43,11 @@ class TornadoUserHandler(RequestHandler):
       TODO: see if post can be better than get
       :param str procedure: Name of the procedure we want to call
     """
-    args_escaped = self.request.headers.get_list('args')
-    args = [url_unescape(arg) for arg in args_escaped]    
+    #args_escaped = self.request.headers.get_list('args')
+    #args = [url_unescape(arg) for arg in args_escaped]    
+    args_escaped = self.get_argument('args')
+    args = json_decode(args_escaped)
+    print "args="+str(args)
     # Here the call can fail (Wrong  number of arguments or non-defined function called for example) 
     try:
       method = getattr(self, 'export_' + procedure)
