@@ -10,6 +10,7 @@ class TornadoClient(object):
     """ 
       Defining usefull variables
       ==> Should be generated with dirac.cfg
+      :param str service: Name of the service
     """
     self.service  = service
     self.port     = 8888
@@ -21,6 +22,8 @@ class TornadoClient(object):
   def __getattr__(self,attrname):
     """ 
       Return the RPC call procedure
+      :param str attrname: Name of the procedure we are trying to call
+      :return: RPC procedure
     """
     def call(*args):
       return self.RPC(attrname, *args)
@@ -30,6 +33,9 @@ class TornadoClient(object):
   def RPC(self, procedure, *args):
     """
       This function call a remote service
+      :param str procedure: remote procedure name
+      :param args: list of arguments
+      :return: decoded response from server, server may return S_OK or S_ERROR
     """
 
     # Encode arguments for POST request
