@@ -1,5 +1,3 @@
-from tornado.httputil import HTTPHeaders
-from tornado.httpclient import HTTPRequest, HTTPResponse,HTTPClient
 import json
 import os, ssl
 import httplib
@@ -8,7 +6,7 @@ import urllib
 class TornadoClient(object):
   def __init__(self, service):
     """ 
-      Defining usefull variables
+      Defining useful variables
       ==> Should be generated with dirac.cfg
       :param str service: Name of the service
     """
