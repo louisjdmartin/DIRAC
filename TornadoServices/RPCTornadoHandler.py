@@ -1,6 +1,6 @@
 from tornado.web import RequestHandler
 from tornado.escape import json_encode, json_decode, url_unescape
-import OpenSSL.crypto
+#import OpenSSL.crypto
 from DIRAC.Core.Security.ProxyInfo import getProxyInfo
 from DIRAC import S_OK, S_ERROR
 
@@ -62,7 +62,7 @@ class TornadoUserHandler(RequestHandler):
 
   def decodeUserCertificate(self):
     # TODO: use ProxyInfo.py 
-    x509 = OpenSSL.crypto.load_certificate(
+    """x509 = OpenSSL.crypto.load_certificate(
             OpenSSL.crypto.FILETYPE_ASN1, 
             self.request.get_ssl_certificate(True)
            )
@@ -84,7 +84,7 @@ class TornadoUserHandler(RequestHandler):
       chain += '/%s=%s' % (s[0], s[1])
     print chain
     print('\nEXPIRE: ' + self.certificate_not_after)
-    print('\nGROUP:  ' + self.certificate_group)
+    print('\nGROUP:  ' + self.certificate_group)"""
 
 
 

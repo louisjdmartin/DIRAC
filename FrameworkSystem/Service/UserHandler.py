@@ -32,13 +32,6 @@ class UserHandler(RequestHandler):
       return S_OK(newUser['lastRowId'])
     return newUser
 
-
-  auth_removeUser = ['all']
-  types_removeUser = [int]
-  def export_removeUser(self, uid):
-    """ Remove a user """
-    return self.userDB.removeUser(uid)
-
   auth_editUser = ['all']
   types_editUser = [int, basestring]
   def export_editUser(self, uid, value):
