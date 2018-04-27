@@ -37,17 +37,19 @@ class TornadoUserHandler(RequestHandler):
   
   def post(self, procedure):
     """ 
-    HTTP GET
+    HTTP POST
       Call the function sended via URL and write the returned value to the connected client
       procedure is provided from the URL following rules from TornadoServer
-      TODO: see if post can be better than get
       :param str procedure: Name of the procedure we want to call
     """
-    #args_escaped = self.request.headers.get_list('args')
-    #args = [url_unescape(arg) for arg in args_escaped]    
-    args_escaped = self.get_argument('args')
-    args = json_decode(args_escaped)
-    print "args="+str(args)
+
+    #Getting arguments, it can fail if args is not defined by client
+    try:   
+      args_encoded = self.get_argument('args')
+      args = json_decode(args_encoded)
+    except:
+      args = []
+
     # Here the call can fail (Wrong  number of arguments or non-defined function called for example) 
     try:
       method = getattr(self, 'export_' + procedure)

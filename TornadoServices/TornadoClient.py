@@ -14,9 +14,10 @@ class TornadoClient(object):
     """
     self.service  = service
     self.port     = 8888
-    # 127.0.0.1 in hard in /etc/hosts, should use this url because Tornado check domain name in host certificate and so refuse 'https://localhost'
+    # 127.0.0.1 in hard in /etc/hosts, should use this url because SSL  check domain name in host certificate and so refuse 'https://localhost'
+    # ssl.CertificateError: hostname 'localhost' doesn't match u'dirac.cern.ch'
     self.domain   = 'dirac.cern.ch' 
-    self.RPCroot  = '/'
+    self.RPCroot  = '/Service/'
 
 
   def __getattr__(self,attrname):
@@ -41,7 +42,7 @@ class TornadoClient(object):
     # Encode arguments for POST request
     args = urllib.urlencode({'args':json.dumps(args)})
 
-    # Create SSL_CTX and load client/CA certificates
+    # Create SSLContext and load client/CA certificates
     ssl_ctx = ssl.create_default_context()
     ssl_ctx.load_cert_chain(os.path.join('/tmp/', "x509up_u0"))
     ssl_ctx.load_verify_locations(os.path.join('/root/dev/etc/grid-security/','hostcert.pem'))
@@ -57,7 +58,7 @@ class TornadoClient(object):
     # Start request
     conn.request(
       "POST", 
-      self.RPCroot+"Service/"+self.service+"/"+procedure,
+      self.RPCroot+self.service+"/"+procedure,
       args,
       headers
     )
