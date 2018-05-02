@@ -2,6 +2,7 @@ import json
 import os, ssl
 import httplib
 import urllib
+import requests
 
 class TornadoClient(object):
   def __init__(self, service):
@@ -15,7 +16,7 @@ class TornadoClient(object):
     # 127.0.0.1 in hard in /etc/hosts, should use this url because SSL  check domain name in host certificate and so refuse 'https://localhost'
     # ssl.CertificateError: hostname 'localhost' doesn't match u'dirac.cern.ch'
     self.domain   = 'dirac.cern.ch' 
-    self.RPCroot  = '/Service/'
+    self.RPCrootURL  = '/Service/'
 
 
   def __getattr__(self,attrname):
@@ -25,19 +26,17 @@ class TornadoClient(object):
       :return: RPC procedure
     """
     def call(*args):
-      return self.RPC(attrname, *args)
+      return self.doRPC(attrname, *args)
 
     return call
 
-  def RPC(self, procedure, *args):
+  def doRPC1(self, procedure, *args):
     """
       This function call a remote service
       :param str procedure: remote procedure name
       :param args: list of arguments
       :return: decoded response from server, server may return S_OK or S_ERROR
     """
-
-    # Encode arguments for POST request
     args = urllib.urlencode({'args':json.dumps(args)})
 
     # Create SSLContext and load client/CA certificates
@@ -56,10 +55,33 @@ class TornadoClient(object):
     # Start request
     conn.request(
       "POST", 
-      self.RPCroot+self.service+"/"+procedure,
+      self.RPCrootURL+self.service+"/"+procedure,
       args,
       headers
     )
     
     # Return result after conversion json->python list
     return json.load(conn.getresponse())
+    
+  def doRPC(self, procedure, *args):
+    """
+      This function call a remote service
+      :param str procedure: remote procedure name
+      :param args: list of arguments
+      :return: decoded response from server, server may return S_OK or S_ERROR
+    """
+    # Encode arguments for POST request
+    args ={'args':json.dumps(args)}
+    response = requests.post(
+      'https://%s:%d%s%s/%s' % (self.domain, self.port, self.RPCrootURL, self.service, procedure),
+      #cert=('/root/.globus/usercert.pem', '/root/.globus/userkey.pem'), #Fonctionne
+      cert=('/tmp/x509up_u0', '/tmp/x509up_u0'), #Fonctionne pas
+      verify=False,
+      data=args
+    )
+    return response.json()
+    
+## NOTE
+## https://lukasa.co.uk/2017/02/Configuring_TLS_With_Requests/
+## Depuis requests 2.12 certains chiffrements ne sont plus acceptees
+## Passer Tornado en AES ?

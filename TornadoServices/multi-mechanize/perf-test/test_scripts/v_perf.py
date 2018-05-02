@@ -7,12 +7,12 @@ class Transaction(object):
   def __init__(self):
     #If we want we can force to use dirac
     if len(sys.argv)>2 and sys.argv[2].lower() == 'dirac':
-        self.service = RPCClient('Framework/User')
+        self.client = RPCClient('Framework/User')
     else:
-        self.service = TornadoClient('Framework/User')
+        self.client = TornadoClient('Framework/User')
     return
 
   def run(self):
-    reponse = self.service.listUsers()
+    reponse = self.client.listUsers()
     assert (reponse['OK'] == True)
 

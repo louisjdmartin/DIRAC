@@ -1,6 +1,6 @@
 from tornado.web import RequestHandler
 from tornado.escape import json_encode, json_decode, url_unescape
-#import OpenSSL.crypto
+import OpenSSL.crypto # TODO: Use M2CRYPTO
 from DIRAC.Core.Security.ProxyInfo import getProxyInfo
 from DIRAC import S_OK, S_ERROR
 
@@ -19,7 +19,6 @@ class TornadoUserHandler(RequestHandler):
       initialize
       :param UserDB: Handler connected to database, provided via dict in TornadoServer
     """
-    print '============== INIT =============='
     self.userDB = UserDB
 
 
@@ -40,6 +39,7 @@ class TornadoUserHandler(RequestHandler):
     HTTP POST
       Call the function sended via URL and write the returned value to the connected client
       procedure is provided from the URL following rules from TornadoServer
+      Arguments (if exists) for remote procedure call must be send in JSON by client
       :param str procedure: Name of the procedure we want to call
     """
 
@@ -49,6 +49,8 @@ class TornadoUserHandler(RequestHandler):
       args = json_decode(args_encoded)
     except:
       args = []
+    print procedure
+    print args
 
     # Here the call can fail (Wrong  number of arguments or non-defined function called for example) 
     try:
@@ -61,16 +63,18 @@ class TornadoUserHandler(RequestHandler):
 
 
   def decodeUserCertificate(self):
-    # TODO: use ProxyInfo.py 
-    """x509 = OpenSSL.crypto.load_certificate(
+    # TODO: use ProxyInfo.py or M2CRYPTO 
+    x509 = OpenSSL.crypto.load_certificate(
             OpenSSL.crypto.FILETYPE_ASN1, 
             self.request.get_ssl_certificate(True)
            )
     self.certificate_subject = x509.get_subject().get_components()
     self.certificate_issuer = x509.get_issuer().get_components()
     self.certificate_not_after = x509.get_notAfter()
-    self.certificate_group = x509.get_extension(1).get_data()
-
+    try:
+      self.certificate_group = x509.get_extension(1).get_data()
+    except:
+      self.certificate_group = 'unknown'
     print('============ USER CERTIFICATE ============')
     print('SUBJECT:')
     chain = ''
@@ -79,12 +83,12 @@ class TornadoUserHandler(RequestHandler):
     print chain
 
     chain = ''
-    print('\nISSUER:')
+    print('ISSUER:')
     for s in self.certificate_issuer:
       chain += '/%s=%s' % (s[0], s[1])
     print chain
-    print('\nEXPIRE: ' + self.certificate_not_after)
-    print('\nGROUP:  ' + self.certificate_group)"""
+    print('EXPIRE: ' + self.certificate_not_after)
+    print('GROUP:  ' + self.certificate_group)
 
 
 

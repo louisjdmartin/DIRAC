@@ -13,12 +13,12 @@ class UserHandler(RequestHandler):
   def initializeHandler(cls, serviceInfo):
     """ Handler initialization
     """
+    cls.userDB = UserDB()
     return S_OK()
 
   def initialize(self):
     """ Response initialization
     """
-    self.userDB = UserDB()
 
 
 
