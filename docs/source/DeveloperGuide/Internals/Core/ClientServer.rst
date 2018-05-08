@@ -150,3 +150,14 @@ send S_ERROR and close connection.
 
 
 .. uml:: complete_client-server.uml
+
+You can see that client send a proposalTuple, proposalTuple contain (service, setup, ClientVO)
+then (typeOfCall, method) and finaly extra-credentials.
+e.g.::
+  (('Framework/serviceName', 'DeveloperSetup', 'unknown'), ('RPC', 'methodName'), '')
+
+
+You have to notice that you can call a fileTransfer function but functions relative to file transfer
+are not implemented yet and always return S_ERROR. If needed you can implement these functions on 
+/DIRAC/Core/DISET/RequestHandler.py: right after __doFileTransfer() method, there is prototype of the 
+functions who are ready to use.

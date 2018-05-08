@@ -1,5 +1,8 @@
 """
   Service class implements the server side part of the DISET protocol
+  There is 2 main parts in this class:
+  - All useful functions for initialization
+  - All useful functions to handle the requests
 """
 #pylint: skip-file
 ## __searchInitFunctions gives RuntimeError: maximum recursion depth exceeded
