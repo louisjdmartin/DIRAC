@@ -101,8 +101,8 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.autosummary',
               'sphinx.ext.graphviz',
               'sphinxcontrib.plantuml'
              ]
-#plantuml = 'java -jar ./plantuml.jar'
-plantuml = 'java -Djava.awt.headless=true -jar /usr/share/plantuml/plantuml.jar'
+plantuml = 'java -Djava.awt.headless=true -jar ./plantuml.jar'
+#plantuml = 'java -Djava.awt.headless=true -jar /usr/share/plantuml/plantuml.jar'
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
