@@ -138,7 +138,9 @@ Servers
 *******
 Here a simplified sequence diagram of client-server communication.
 
-.. uml:: simplified_client-server.uml
+.. image:: simplified_client-server.png
+    :align: center
+    :alt: Simplified Client Server
 
 In most of the case, an RPC call follow this diagram, before starting anything DIRAC check IP. 
 Then client use the handshake to send his certificate and right after he send the remote procedure
@@ -149,8 +151,9 @@ request handler, if IP is banned DIRAC close connection. For other steps if an e
 send S_ERROR and close connection.
 
 
-.. uml:: complete_client-server.uml
-
+.. image:: complete_client-server.png
+    :align: center
+    :alt: Complete Client Server
 You can see that client send a proposalTuple, proposalTuple contain (service, setup, ClientVO)
 then (typeOfCall, method) and finaly extra-credentials.
 e.g.::
