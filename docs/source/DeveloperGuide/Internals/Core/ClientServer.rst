@@ -157,7 +157,7 @@ e.g.::
   (('Framework/serviceName', 'DeveloperSetup', 'unknown'), ('RPC', 'methodName'), '')
 
 
-You have to notice that you can call a fileTransfer function but functions relative to file transfer
+You have to notice that you can call a __doFileTransfer function but functions relative to file transfer
 are not implemented yet and always return S_ERROR. If needed you can implement these functions on 
 /DIRAC/Core/DISET/RequestHandler.py: right after __doFileTransfer() method, there is prototype of the 
 functions who are ready to use.
