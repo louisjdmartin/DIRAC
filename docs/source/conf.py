@@ -102,7 +102,8 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.autosummary',
               'sphinxcontrib.plantuml'
              ]
 plantuml = 'java -Djava.awt.headless=true -jar ./plantuml.jar'
-#plantuml = 'java -Djava.awt.headless=true -jar /usr/share/plantuml/plantuml.jar'
+os.environ["GRAPHVIZ_DOT"] = '/usr/local/bin/graphviz/dot'
+plantuml = 'java -Djava.awt.headless=true -jar /usr/share/plantuml/plantuml.jar'
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
