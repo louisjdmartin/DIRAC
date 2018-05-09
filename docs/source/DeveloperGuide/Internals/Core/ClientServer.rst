@@ -142,6 +142,8 @@ Here a simplified sequence diagram of client-server communication.
     :align: center
     :alt: Simplified Client Server
 
+-.. uml:: complete_client-server.uml
+
 In most of the case, an RPC call follow this diagram, before starting anything DIRAC check IP. 
 Then client use the handshake to send his certificate and right after he send the remote procedure
 who need to be called. DIRAC checking authorization send a signal to client when ready. Client send 
