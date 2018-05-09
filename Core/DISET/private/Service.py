@@ -39,6 +39,15 @@ class Service( object ):
   SVC_SECLOG_CLIENT = SecurityLogClient()
 
   def __init__( self, serviceData ):
+    """
+      Init the variables for service
+      :param serviceData: dict with modName, standalone, loadName, moduleObj, classObj. e.g.:
+        {'modName': 'Framework/serviceName', 
+        'standalone': True, 
+        'loadName': 'Framework/serviceName', 
+        'moduleObj': <module 'serviceNameHandler' from '/home/DIRAC/FrameworkSystem/Service/serviceNameHandler.pyo'>,
+        'classObj': <class 'serviceNameHandler.serviceHandler'>}
+    """
     self._svcData = serviceData
     self._name = serviceData[ 'modName' ]
     self._startTime = Time.dateTime()
