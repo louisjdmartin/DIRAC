@@ -292,7 +292,7 @@ class Service( object ):
     Connection may be opened via ServiceReactor.__acceptIncomingConnection
      :param clientTransport: Object who describe opened connection
 
-    - Do the SSL/TLS Handshake (if dips is used)
+    - Do the SSL/TLS Handshake (if dips is used) and extract credentials
     - Get the action called by client
     - Check if client is authorized to perform ation
       - If not, connection is closed

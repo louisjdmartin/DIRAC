@@ -8,3 +8,4 @@ How DIRAC works underneath
    ../../AdministratorGuide/Systems/WorkloadManagement/JobPriorities/index
    Core/index
    Core/componentsAuthNandAuthZ
+   Core/Authentification

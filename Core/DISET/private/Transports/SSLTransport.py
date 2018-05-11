@@ -43,7 +43,7 @@ class SSLTransport( BaseTransport ):
 
   def setSocketTimeout( self, timeout ):
     """
-    This method is used to chenge the default timeout of the socket
+    This method is used to change the default timeout of the socket
     """
     gSocketInfoFactory.setSocketTimeout( timeout )
 
@@ -91,6 +91,10 @@ class SSLTransport( BaseTransport ):
     return S_OK()
 
   def handshake( self ):
+    """
+      Initiate the client-server handshake and extract credentials
+      :return: S_OK (with credentialDict if new session)
+    """
     retVal = self.oSocketInfo.doServerHandshake()
     if not retVal[ 'OK' ]:
       return retVal

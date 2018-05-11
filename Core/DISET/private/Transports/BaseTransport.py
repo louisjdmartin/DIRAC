@@ -55,6 +55,8 @@ class BaseTransport( object ):
     return self.__keepAliveLapse
 
   def handshake( self ):
+    """ This method is overwritted by SSLTransport if we use a secured transport.
+    """
     return S_OK()
 
   def close( self ):
@@ -74,6 +76,8 @@ class BaseTransport( object ):
     return self.__lastServerRenewTimestamp
 
   def getConnectingCredentials( self ):
+    """ :return: dictionnary with credentials
+    """
     return self.peerCredentials
 
   def setExtraCredentials( self, group ):
