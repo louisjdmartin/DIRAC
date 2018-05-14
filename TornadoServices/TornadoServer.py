@@ -11,6 +11,8 @@ from tornado.ioloop import IOLoop
 from tornado.escape import json_encode
 from tornado import gen
 from DIRAC import S_OK, gLogger
+from DIRAC.Core.DISET.AuthManager import AuthManager
+from DIRAC.ConfigurationSystem.Client import PathFinder
 from RPCTornadoHandler import TornadoUserHandler
 import ssl, os
 
@@ -24,8 +26,12 @@ def startTornado():
 
   # TODO: Dynamic rooting (with dirac.cfg ?)
   userDB = UserDB()
+  authManager = AuthManager( "%s/Authorization" % PathFinder.getServiceSection("Framework/User") )
+  #authManager.authQuery( csAuthPath, credDict, hardcodedMethodAuth ) #return boolean
+
+
   router = Application([
-      url(r"/Service/Framework/User/([A-Za-z0-9]+)", TornadoUserHandler, dict(UserDB=userDB)),
+      url(r"/Service/Framework/User/([A-Za-z0-9]+)", TornadoUserHandler, dict(UserDB=userDB, AuthManager=authManager )),
   ], debug=True)
 
 

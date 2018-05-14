@@ -30,7 +30,7 @@ class TornadoClient(object):
 
     return call
 
-  def doRPC1(self, procedure, *args):
+  def doRPC(self, procedure, *args):
     """
       This function call a remote service
       :param str procedure: remote procedure name
@@ -63,7 +63,7 @@ class TornadoClient(object):
     # Return result after conversion json->python list
     return json.load(conn.getresponse())
     
-  def doRPC(self, procedure, *args):
+  def doRPC1(self, procedure, *args):
     """
       This function call a remote service
       :param str procedure: remote procedure name

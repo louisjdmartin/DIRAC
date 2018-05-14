@@ -14,12 +14,14 @@ from DIRAC import S_OK, S_ERROR
 class TornadoUserHandler(RequestHandler):
 
   
-  def initialize(self, UserDB):
+  def initialize(self, UserDB, AuthManager):
     """
       initialize
       :param UserDB: Handler connected to database, provided via dict in TornadoServer
     """
     self.userDB = UserDB
+    self.authManager = AuthManager
+
 
 
   
@@ -29,7 +31,8 @@ class TornadoUserHandler(RequestHandler):
       Read the user certificate
       TODO: Read authorizations
     """
-    self.decodeUserCertificate()
+    self.credDict = self.decodeUserCertificate()
+    
 
 
 
@@ -42,7 +45,8 @@ class TornadoUserHandler(RequestHandler):
       Arguments (if exists) for remote procedure call must be send in JSON by client
       :param str procedure: Name of the procedure we want to call
     """
-
+    print('AUTHMANAGER:')
+    print(self.authManager.authQuery( procedure, self.credDict )) #return boolean
     #Getting arguments, it can fail if args is not defined by client
     try:   
       args_encoded = self.get_argument('args')
@@ -64,10 +68,12 @@ class TornadoUserHandler(RequestHandler):
 
   def decodeUserCertificate(self):
     # TODO: use ProxyInfo.py or M2CRYPTO 
+    # For now infos are not real...
     x509 = OpenSSL.crypto.load_certificate(
             OpenSSL.crypto.FILETYPE_ASN1, 
             self.request.get_ssl_certificate(True)
            )
+    credDict = {}
     self.certificate_subject = x509.get_subject().get_components()
     self.certificate_issuer = x509.get_issuer().get_components()
     self.certificate_not_after = x509.get_notAfter()
@@ -81,7 +87,7 @@ class TornadoUserHandler(RequestHandler):
     for s in self.certificate_subject:
       chain += '/%s=%s' % (s[0], s[1])
     print chain
-
+    credDict['DN'] = chain
     chain = ''
     print('ISSUER:')
     for s in self.certificate_issuer:
@@ -89,8 +95,11 @@ class TornadoUserHandler(RequestHandler):
     print chain
     print('EXPIRE: ' + self.certificate_not_after)
     print('GROUP:  ' + self.certificate_group)
-
-
+    credDict['group'] = self.certificate_group
+    credDict['isProxy'] = True
+    credDict['isLimitedProxy'] = False
+    credDict['CN'] = u'ciuser'
+    return credDict
 
 
 
