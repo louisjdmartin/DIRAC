@@ -134,7 +134,7 @@ And because of the ``threading.local`` inheritance, we can have separate users a
         t.join()
 
 *******
-Servers
+Service
 *******
 Here a simplified sequence diagram of client-server communication.
 
