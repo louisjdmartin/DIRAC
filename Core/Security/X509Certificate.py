@@ -39,13 +39,13 @@ class X509Certificate( object ):
       return S_ERROR( DErrno.EOF, "Can't open %s file" % certLocation )
     return self.loadFromString( pemData )
 
-  def loadFromString( self, pemData ):
+  def loadFromString( self, pemData, dataFormat=GSI.crypto.FILETYPE_PEM):
     """
     Load a x509 cert from a string containing the pem data
     Return : S_OK / S_ERROR
     """
     try:
-      self.__certObj = GSI.crypto.load_certificate( GSI.crypto.FILETYPE_PEM, pemData )
+      self.__certObj = GSI.crypto.load_certificate( dataFormat, pemData )
     except Exception, e:
       return S_ERROR( DErrno.ECERTREAD, "Can't load pem data: %s" % e )
     self.__valid = True
