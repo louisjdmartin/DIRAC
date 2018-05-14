@@ -278,6 +278,7 @@ class Service( object ):
       This method may be called by ServiceReactor.
       The method stack openened connection in a queue, another thread 
       read this queue and handle connection.
+
       :param clientTransport: Object who describe opened connection
     """
     self._stats[ 'connections' ] += 1
@@ -290,7 +291,6 @@ class Service( object ):
     """
     This method handle a RPC, FileTransfer or Connection.
     Connection may be opened via ServiceReactor.__acceptIncomingConnection
-     :param clientTransport: Object who describe opened connection
 
     - Do the SSL/TLS Handshake (if dips is used) and extract credentials
     - Get the action called by client
@@ -304,6 +304,9 @@ class Service( object ):
       and call RequestHandler._rh_executeAction() 
     - Receive arguments/file/something else (depending on action) in RequestHandler
     - Executing action asked by client
+
+    :param clientTransport: Object who describe opened connection (SSLTransport or PlainTransport)
+
     """
     self.__maxFD = max( self.__maxFD, clientTransport.oSocket.fileno() )
     self._lockManager.lockGlobal()

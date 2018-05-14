@@ -75,8 +75,10 @@ def getSystemURLSection( serviceName, serviceTuple = False, setup = False ):
 def getServiceURL( serviceName, serviceTuple = False, setup = False ):
   """
     Generate url.
+
     :param serviceName: Name of service, like 'Framework/Service'.
     :param serviceTuple: (optional) also name of service but look like ('Framework', 'Service').
+    
     :return: complete url. e.g. dips://some-domain:3424/Framework/Service
   """
   if not serviceTuple:

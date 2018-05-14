@@ -44,6 +44,7 @@ class RequestHandler(object):
 
     :type handlerInitDict: dictionary
     :param handlerInitDict: Information vars for the service
+
     :type trid: object
     :param trid: Transport to use
     """
