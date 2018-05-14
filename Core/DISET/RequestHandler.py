@@ -242,18 +242,20 @@ class RequestHandler(object):
   def __RPCCallFunction(self, method, args):
     """
       Check arguments then call RPC function 
+
       :type method: string
       :param method: arguments sended by remote client
+
       :return: S_OK/S_ERROR
     """
     realMethod = "export_%s" % method
     gLogger.debug("RPC to %s" % realMethod)
     try:
-      # Get method we are trying to call
+      # Get the method we are trying to call
       oMethod = getattr(self, realMethod)
     except:
       return S_ERROR("Unknown method %s" % method)
-    # Check if client send correct arguments
+    # Check if the client sends correct arguments
     dRetVal = self.__checkExpectedArgumentTypes(method, args)
     if not dRetVal['OK']:
       return dRetVal

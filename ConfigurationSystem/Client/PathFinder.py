@@ -39,7 +39,8 @@ def getComponentSection (componentName, componentTuple = False, setup = False, c
 
   :param str componentName: Component name prefixed by the system in which it is placed.
                             e.g. 'WorkloadManagement/SandboxStoreHandler'
-  :param componentTuple:
+  :param tuple componentTuple: Path of the componenent already divided
+                               e.g. ('WorkloadManagement', 'SandboxStoreHandler')
   :param str setup: Name of the setup.
   :param str componentCategory: Category of the component, it can be: 'Agents', 'Services', 'Executors'
                                 or 'Databases'.
@@ -78,6 +79,7 @@ def getServiceURL( serviceName, serviceTuple = False, setup = False ):
 
     :param serviceName: Name of service, like 'Framework/Service'.
     :param serviceTuple: (optional) also name of service but look like ('Framework', 'Service').
+    :param str setup: DIRAC setup name, can be defined in dirac.cfg
     
     :return: complete url. e.g. dips://some-domain:3424/Framework/Service
   """

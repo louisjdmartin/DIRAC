@@ -1,4 +1,15 @@
 """ Hosts BaseTransport class, which is a base for PlainTransport and SSLTransport
+
+BaseTransport is used by client and service, it describe an opened connection.
+Here a diagram of basic Client<->Service exchange
+
+Client -> ServiceReactor : Connect
+Client<-->Service        : Handshake (only in SSLTransport)
+Client -> Service        : Propose action
+Client <- Service        : S_OK
+Client -> RequestHandler : Arguments
+Client <- RequestHandler : Response
+Client <- Service        : Close
 """
 
 __RCSID__ = "$Id$"
@@ -55,7 +66,7 @@ class BaseTransport( object ):
     return self.__keepAliveLapse
 
   def handshake( self ):
-    """ This method is overwritted by SSLTransport if we use a secured transport.
+    """ This method is overwritten by SSLTransport if we use a secured transport.
     """
     return S_OK()
 
@@ -76,7 +87,20 @@ class BaseTransport( object ):
     return self.__lastServerRenewTimestamp
 
   def getConnectingCredentials( self ):
-    """ :return: dictionnary with credentials
+    """ 
+
+    :return: dictionnary with credentials
+
+      Return empty dictionnary for plainTransport
+      in SSLTransport it contain (after the handshake):
+       - 'DN' : All identity name, e.g. /C=ch/O=DIRAC/OU=DIRAC CI/CN=ciuser/emailAddress=lhcb-dirac-ci@cern.ch
+       - 'CN' : Only the user name e.g. ciuser
+       - 'x509Chain' : List of all certificates in the chain
+       - 'isProxy' : True if client use proxy certificate
+       - 'isLimitedProxy' : True if client use limited proxy certificate
+       - 'group' (optional): Dirac group attached to client
+       - 'extraCredentials' (optional): Extra credentials if exists
+      Before the handshake, dictionnary is empty
     """
     return self.peerCredentials
 

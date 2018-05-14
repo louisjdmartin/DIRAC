@@ -1,6 +1,6 @@
 """
   Service class implements the server side part of the DISET protocol
-  There is 2 main parts in this class:
+  There are 2 main parts in this class:
   - All useful functions for initialization
   - All useful functions to handle the requests
 """
@@ -41,12 +41,16 @@ class Service( object ):
   def __init__( self, serviceData ):
     """
       Init the variables for service
+
       :param serviceData: dict with modName, standalone, loadName, moduleObj, classObj. e.g.:
         {'modName': 'Framework/serviceName', 
         'standalone': True, 
         'loadName': 'Framework/serviceName', 
         'moduleObj': <module 'serviceNameHandler' from '/home/DIRAC/FrameworkSystem/Service/serviceNameHandler.pyo'>,
         'classObj': <class 'serviceNameHandler.serviceHandler'>}
+
+        Standalone is true if there is only one service started
+        If it's false, every service is linked to a different MonitoringClient
     """
     self._svcData = serviceData
     self._name = serviceData[ 'modName' ]
@@ -279,7 +283,7 @@ class Service( object ):
       The method stack openened connection in a queue, another thread 
       read this queue and handle connection.
 
-      :param clientTransport: Object who describe opened connection
+      :param clientTransport: Object wich describe opened connection
     """
     self._stats[ 'connections' ] += 1
     self._monitor.setComponentExtraParam( 'queries', self._stats[ 'connections' ] )
@@ -289,7 +293,7 @@ class Service( object ):
   #Threaded process function
   def _processInThread( self, clientTransport ):
     """
-    This method handle a RPC, FileTransfer or Connection.
+    This method handles a RPC, FileTransfer or Connection.
     Connection may be opened via ServiceReactor.__acceptIncomingConnection
 
     - Do the SSL/TLS Handshake (if dips is used) and extract credentials
@@ -306,6 +310,9 @@ class Service( object ):
     - Executing action asked by client
 
     :param clientTransport: Object who describe opened connection (SSLTransport or PlainTransport)
+
+    :return: S_OK with "closeTransport" equal to True if connection have to be closed 
+            e.g. after RPC closeTransport=True
 
     """
     self.__maxFD = max( self.__maxFD, clientTransport.oSocket.fileno() )
