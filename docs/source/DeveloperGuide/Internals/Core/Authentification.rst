@@ -19,7 +19,7 @@ When client start a remote call, DIRAC send this dictionnary to the AuthManager 
 ***********
 AuthManager
 ***********
-AuthManager.authQuery() return boolean so it is easy to use, you just have to provide a method you want to call, and credDic. tIt's easy to use but you have to instanciate correctly the AuthManager. For initialization you need the complete path of your service, to get it you may use the PathFinder::
+AuthManager.authQuery() return boolean so it is easy to use, you just have to provide a method you want to call, and credDic. It's easy to use but you have to instanciate correctly the AuthManager. For initialization you need the complete path of your service, to get it you may use the PathFinder::
 
 	from DIRAC.ConfigurationSystem.Client import PathFinder
 	authManager = AuthManager( "%s/Authorization" % PathFinder.getServiceSection("Framework/someService") )
