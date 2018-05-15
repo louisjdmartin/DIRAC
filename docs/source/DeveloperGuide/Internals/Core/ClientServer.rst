@@ -144,12 +144,12 @@ Here a simplified sequence diagram of client-server communication.
 
 
 
-In most of the case, an RPC call follow this diagram. Before starting anything DIRAC check IP. 
+In most of the case, an RPC call follow this diagram. Before starting anything service check IP. 
 Then client send his certificate during handshake and right after he send the remote procedure
-who need to be called. DIRAC checking authorization and send a signal to client when ready. Client send 
-all arguments that server needs and finaly DIRAC executing his task. Under these line you can found
-a more complete diagram. Before calling the request handler, if IP is banned, DIRAC close connection. 
-For other steps if an error occured DIRAC send S_ERROR before closing connection.
+who need to be called. Service checking authorization and send a signal to client when ready. Client send 
+all arguments that server needs and finaly Service executing his task. Under these line you can found
+a more complete diagram. Before calling the request handler, if IP is banned, Service close connection. 
+For other steps if an error occured Service send S_ERROR before closing connection.
 
 
 .. image:: complete_client-server.png
