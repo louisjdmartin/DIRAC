@@ -144,12 +144,12 @@ Here a simplified sequence diagram of client-server communication.
 
 
 
-In most of the case, an RPC call follow this diagram. Before starting anything service check IP. 
-Then client send his certificate during handshake and right after he send the remote procedure
-who need to be called. Service checking authorization and send a signal to client when ready. Client send 
-all arguments that server needs and finaly Service executing his task. Under these line you can found
-a more complete diagram. Before calling the request handler, if IP is banned, Service close connection. 
-For other steps if an error occured Service send S_ERROR before closing connection.
+In most of the case, an RPC call follow this diagram. Before starting anything, the service checks IP. 
+Then client send his certificate during handshake and right after he sends the remote procedure
+who need to be called. The service checks the authorization and sends a signal to client when ready. The client sends 
+all arguments that server needs and finaly the service executes his task. Under these line you can found
+a more complete diagram. Before calling the request handler, if IP is banned, the service closes connection. 
+For other steps if an error occured the service sends S_ERROR before closing connection.
 
 
 .. image:: complete_client-server.png
@@ -157,25 +157,26 @@ For other steps if an error occured Service send S_ERROR before closing connecti
     :alt: Complete Client Server
 
 Complete path of packages are not on the diagram for readability:
- - serviceReactor: DIRAC.Core.DISET.ServiceReactor
- - service: DIRAC.Core.DISET.private.Service
- - requestHandler: DIRAC.Core.DISET.RequestHandler
+
+ - serviceReactor: :py:class:`DIRAC.Core.DISET.ServiceReactor`
+ - service: :py:class:`DIRAC.Core.DISET.private.Service`
+ - requestHandler: :py:class:`DIRAC.Core.DISET.RequestHandler`
 
 
-You can see that client send a proposalTuple, proposalTuple contain (service, setup, ClientVO)
+You can see that the client sends a proposalTuple, proposalTuple contain (service, setup, ClientVO)
 then (typeOfCall, method) and finaly extra-credentials.
 e.g.::
   (('Framework/serviceName', 'DeveloperSetup', 'unknown'), ('RPC', 'methodName'), '')
 
 
-You have to notice that you can call a __doFileTransfer function but functions relative to file transfer
+You have to notice that the service can call __doFileTransfer() but functions relative to file transfer
 are not implemented and always return S_ERROR. If needed you can implement these functions by overwriting 
-methods from DIRAC.Core.DISET.RequestHandler in your service. Here the methods you have to overwrite::
+methods from :py:class:`DIRAC.Core.DISET.RequestHandler` in your service. Here the methods you have to overwrite::
   def transfer_fromClient(self, fileId, token, fileSize, fileHelper):
   def transfer_toClient(self, fileId, token, fileHelper):
   def transfer_bulkFromClient(self, bulkId, token, bulkSize, fileHelper):
   def transfer_bulkToClient(self, bulkId, token, fileHelper):
   def transfer_listBulk(self, bulkId, token, fileHelper):
 
-Client must send ('FileTransfer', direction) instead of ('RPC', method), direction can be fromClient, 
-toClient, bulkFromClient, bulkToClient or listBulk.
+Client must send ('FileTransfer', direction) instead of ('RPC', method), direction can be "fromClient", 
+"toClient", "bulkFromClient", "bulkToClient" or "listBulk".

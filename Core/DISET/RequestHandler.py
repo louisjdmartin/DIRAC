@@ -241,7 +241,7 @@ class RequestHandler(object):
 
   def __RPCCallFunction(self, method, args):
     """
-      Check arguments then call RPC function 
+      Check the arguments then call the RPC function 
 
       :type method: string
       :param method: arguments sended by remote client
@@ -259,14 +259,14 @@ class RequestHandler(object):
     dRetVal = self.__checkExpectedArgumentTypes(method, args)
     if not dRetVal['OK']:
       return dRetVal
-    # Lock method with Semaphore to avoid too many calls at the same time
+    # Lock the method with Semaphore to avoid too many calls at the same time
     self.__lockManager.lock("RPC/%s" % method)
     self.__msgBroker.addTransportId(self.__trid,
                                     self.serviceInfoDict['serviceName'],
                                     idleRead=True)
     try:
       try:
-        # Trying to execute method
+        # Trying to execute the method
         uReturnValue = oMethod(*args)
         return uReturnValue
       finally:
