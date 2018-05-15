@@ -154,7 +154,7 @@ class ServiceReactor( object ):
     """
       This method gets incomming connections.
       This method just gets the incomming connection, checks IP address
-      and generates job. SSL/TLS handshake and execution of remote call
+      and generates job. SSL/TLS handshake and executing of remote call
       are made by Service._processInThread() (in another thread) so
       DIRAC can accept other client while Service handle remote call
 

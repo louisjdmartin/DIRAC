@@ -283,7 +283,7 @@ class Service( object ):
       The method stack openened connection in a queue, another thread 
       read this queue and handle connection.
 
-      :param clientTransport: Object wich describe opened connection
+      :param clientTransport: Object wich describe opened connection (PlainTransport or SSLTransport)
     """
     self._stats[ 'connections' ] += 1
     self._monitor.setComponentExtraParam( 'queries', self._stats[ 'connections' ] )
@@ -311,8 +311,8 @@ class Service( object ):
 
     :param clientTransport: Object who describe opened connection (SSLTransport or PlainTransport)
 
-    :return: S_OK with "closeTransport" equal to True if connection have to be closed 
-            e.g. after RPC closeTransport=True
+    :return: S_OK with "closeTransport" a boolean to indicate if connection have to be closed 
+            e.g. after RPC, closeTransport=True
 
     """
     self.__maxFD = max( self.__maxFD, clientTransport.oSocket.fileno() )

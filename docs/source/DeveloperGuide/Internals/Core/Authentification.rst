@@ -1,7 +1,8 @@
 ==================================
 Authentification and authorization
 ==================================
-When a user is calling DIRAC he need to be identified. When a client open a connection every thing you need is stored in BaseTransport object (DIRAC.Core.DISET.private.transport.BaseTransport). DIRAC use the handshake to read certificates, extract informations and store them in a dictionnary so you can use these informations easily. Here an example of possible dictionnary::
+When a user is calling a Service, he needs to be identified. If a client opens a connection a :py:class:`~DIRAC.Core.DISET.private.transport.BaseTransport.BaseTransport` 
+object is created then Service use the handshake to read certificates, extract informations and store them in a dictionnary so you can use these informations easily. Here an example of possible dictionnary::
 
 	{
 		'DN': '/C=ch/O=DIRAC/[...]',
@@ -13,13 +14,13 @@ When a user is calling DIRAC he need to be identified. When a client open a conn
 	}
 
 
-When client start a remote call, DIRAC send this dictionnary to the AuthManager to check authorizations. More generally you can get this dictionnary with getConnectingCredentials() method.
+When connection is opened and handshake is done, Service call the :py:class:`~DIRAC.Core.DISET.AuthManager.AuthManager` and gave him this dictionnary in argument to check authorizations. More generally you can get this dictionnary with :py:meth:`~DIRAC.Core.DISET.private.transport.BaseTransport.BaseTransport.getConnectingCredentials()`.
 
 
 ***********
 AuthManager
 ***********
-AuthManager.authQuery() return boolean so it is easy to use, you just have to provide a method you want to call, and credDic. It's easy to use but you have to instanciate correctly the AuthManager. For initialization you need the complete path of your service, to get it you may use the PathFinder::
+AuthManager.authQuery() returns boolean so it is easy to use, you just have to provide a method you want to call, and credDic. It's easy to use but you have to instanciate correctly the AuthManager. For initialization you need the complete path of your service, to get it you may use the PathFinder::
 
 	from DIRAC.ConfigurationSystem.Client import PathFinder
 	authManager = AuthManager( "%s/Authorization" % PathFinder.getServiceSection("Framework/someService") )
