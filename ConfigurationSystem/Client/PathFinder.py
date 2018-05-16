@@ -80,7 +80,7 @@ def getServiceURL( serviceName, serviceTuple = False, setup = False ):
     :param serviceName: Name of service, like 'Framework/Service'.
     :param serviceTuple: (optional) also name of service but look like ('Framework', 'Service').
     :param str setup: DIRAC setup name, can be defined in dirac.cfg
-    
+
     :return: complete url. e.g. dips://some-domain:3424/Framework/Service
   """
   if not serviceTuple:
