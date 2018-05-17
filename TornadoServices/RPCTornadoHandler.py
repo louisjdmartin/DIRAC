@@ -5,7 +5,7 @@ from DIRAC.Core.Security.ProxyInfo import getProxyInfo
 from DIRAC.Core.Security.X509Certificate import X509Certificate
 from DIRAC.Core.Security.X509Chain import X509Chain
 import GSI
-from DIRAC import S_OK, S_ERROR
+from DIRAC import S_OK, S_ERROR, gLogger
 
 
 """ 
@@ -20,7 +20,9 @@ class TornadoUserHandler(RequestHandler):
   def initialize(self, UserDB, AuthManager):
     """
       initialize
+
       :param UserDB: Handler connected to database, provided via dict in TornadoServer
+      :param AuthManager: DIRAC authentification system
     """
     print('====== NEW REQUEST ======')
     self.userDB = UserDB
@@ -33,7 +35,6 @@ class TornadoUserHandler(RequestHandler):
     """ 
       prepare
       Read the user certificate
-      TODO: Read authorizations
     """
     self.credDict = self.gatherPeerCredentialsNoProxy()
     
@@ -44,78 +45,88 @@ class TornadoUserHandler(RequestHandler):
   def post(self, procedure):
     """ 
     HTTP POST
-      Call the function sended via URL and write the returned value to the connected client
+      Call the method sended via URL and send returned value to client in JSON
       procedure is provided from the URL following rules from TornadoServer
       Arguments (if exists) for remote procedure call must be send in JSON by client
+
       :param str procedure: Name of the procedure we want to call
     """
     try:
       hardcodedAuth = getattr(self, 'auth_'+procedure)
     except AttributeError:
       hardcodedAuth = None
-    if self.authManager.authQuery( procedure, self.credDict, hardcodedAuth ):
+    if self.authManager.authQuery(procedure, self.credDict, hardcodedAuth):
       #Getting arguments, it can fail if args is not defined by client
       try:   
         args_encoded = self.get_argument('args')
         args = json_decode(args_encoded)
       except:
         args = []
-      print procedure
-      print args
-
-      # Here the call can fail (Wrong  number of arguments or non-defined function called for example) 
-      try:
-        method = getattr(self, 'export_' + procedure)
-        self.write(json_encode(method(*args)))
-      except Exception, e:
-        self.write(json_encode(S_ERROR(str(e))))
+      retVal = self._checkExpectedArgumentTypes(procedure, args)
+      if retVal['OK']:
+        # Executing method
+        try:
+          method = getattr(self, 'export_' + procedure)
+          self.write(json_encode(method(*args)))
+        except Exception, e:
+          self.write(json_encode(S_ERROR(str(e))))
+      else:
+        gLogger.debug(retVal)
+        self.write(json_encode(retVal))
     else:
       self.write(json_encode(S_ERROR("You're not authorized to do that.")))
 
 
-  def decodeUserCertificate(self):
-    # TODO: use ProxyInfo.py or M2CRYPTO 
-    # Note used for now
-    x509 = OpenSSL.crypto.load_certificate(
-            OpenSSL.crypto.FILETYPE_ASN1, 
-            self.request.get_ssl_certificate(True)
-           )
-    credDict = {}
-    self.certificate_subject = x509.get_subject().get_components()
-    self.certificate_issuer = x509.get_issuer().get_components()
-    self.certificate_not_after = x509.get_notAfter()
+  """ Copier coller du requesthandler dirac, voir pour eviter duplication de code """
+  def _checkExpectedArgumentTypes(self, method, args):
+    """
+    Check that the arguments received match the ones expected
+
+    :type method: string
+    :param method: Method to check against
+    :type args: tuple
+    :param args: Arguments to check
+    :return: S_OK/S_ERROR
+    """
+    sListName = "types_%s" % method
     try:
-      self.certificate_group = x509.get_extension(1).get_data()
+      oTypesList = getattr(self, sListName)
     except:
-      self.certificate_group = 'unknown'
-    print('============ USER CERTIFICATE ============')
-    print('SUBJECT:')
-    chain = ''
-    for s in self.certificate_subject:
-      chain += '/%s=%s' % (s[0], s[1])
-      if(s[0] == 'CN'):
-        credDict['CN'] = s[1]
-    print chain
-    credDict['DN'] = chain
-    chain = ''
-    print('ISSUER:')
-    for s in self.certificate_issuer:
-      chain += '/%s=%s' % (s[0], s[1])
-    print chain
-    print('EXPIRE: ' + self.certificate_not_after)
-    print('GROUP:  ' + self.certificate_group)
-    credDict['group'] = self.certificate_group
+      gLogger.error("There's no types info for method", "export_%s" % method)
+      return S_ERROR("Handler error for server %s while processing method %s" % (self.serviceInfoDict['serviceName'],
+                                                                                 method))
+    try:
+      mismatch = False
+      for iIndex in range(min(len(oTypesList), len(args))):
+        # If None skip the parameter
+        if oTypesList[iIndex] is None:
+          continue
+        # If parameter is a list or a tuple check types inside
+        elif isinstance(oTypesList[iIndex], (tuple, list)):
+          if not isinstance(args[iIndex], tuple(oTypesList[iIndex])):
+            mismatch = True
+        # else check the parameter
+        elif not isinstance(args[iIndex], oTypesList[iIndex]):
+          mismatch = True
+        # Has there been a mismatch?
+        if mismatch:
+          sError = "Type mismatch in parameter %d (starting with param 0) Received %s, expected %s" % (
+              iIndex, type(args[iIndex]), str(oTypesList[iIndex]))
+          return S_ERROR(sError)
+      if len(args) < len(oTypesList):
+        return S_ERROR("Function %s expects at least %s arguments" % (method, len(oTypesList)))
+    except Exception, v:
+      sError = "Error in parameter check: %s" % str(v)
+      gLogger.exception(sError)
+      return S_ERROR(sError)
+    return S_OK()
 
-
-    # For now thesel infos are not real...
-    credDict['isProxy'] = False
-    credDict['isLimitedProxy'] = False
-    return credDict
-    return self.gatherPeerCredentials()
 
   def gatherPeerCredentialsNoProxy( self ):
     """
       Pour l'instant j'ai pas reussi a charger la chaine entiere...
+      C'est du copier coller
+      Et ca utilise GSI au lieu de M2Crypto...
     """
     peerChain = X509Certificate()
     peerChain.loadFromString(self.request.get_ssl_certificate(True), GSI.crypto.FILETYPE_ASN1)
@@ -142,9 +153,21 @@ class TornadoUserHandler(RequestHandler):
 
 
 
+
+
+
+
+
+
+
+
+
+  auth_addUser = ['all']
+  types_addUser = [(str, unicode)]
   def export_addUser(self, whom):
     """ 
     Add a user 
+
       :param str whom: The name of the user we want to add
       :return: S_OK with S_OK['Value'] = The_ID_of_the_user or S_ERROR
     """
@@ -153,18 +176,25 @@ class TornadoUserHandler(RequestHandler):
       return S_OK(newUser['lastRowId'])
     return newUser
 
+  auth_editUser = ['all']
+  types_editUser = [int, (str, unicode)]
   def export_editUser(self, uid, value):
     """ 
       Edit a user 
+
       :param int uid: The Id of the user in database
       :param str value: New user name
       :return: S_OK or S_ERROR
     """
     return self.userDB.editUser(uid, value)
 
+
+  auth_getUserName = ['all']
+  types_getUserName = [int]
   def export_getUserName(self, uid):
     """ 
       Get a user 
+
       :param int uid: The Id of the user in database
       :return: S_OK with S_OK['Value'] = TheUserName or S_ERROR if not found
     """
@@ -176,6 +206,7 @@ class TornadoUserHandler(RequestHandler):
   def export_listUsers(self):
     """
       List all users
+
       :return: S_OK with S_OK['Value'] list of [UserId, UserName]
     """
     return self.userDB.listUsers()
