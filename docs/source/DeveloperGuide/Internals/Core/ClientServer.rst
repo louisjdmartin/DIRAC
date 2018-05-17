@@ -144,11 +144,11 @@ Here a simplified sequence diagram of client-server communication.
 
 
 
-In most of the case, a RPC call follows this diagram. Before starting anything, the service checks IP. 
-Then client send his certificate during handshake and right after he sends the remote procedure
+In most of the cases, a RPC call follows this diagram. Before starting anything, the service checks the IP. 
+Then the client sends his certificate during the handshake and right after he sends the remote procedure
 who need to be called. The service checks the authorization and sends a signal to client when ready. The client sends 
-all arguments that service needs and finally the service executes his task. Under these line you can found
-a more complete diagram. Before calling the request handler, if IP is banned, the service closes connection. 
+all arguments that the service needs and finally the service executes its task. Under these line you can found
+a more complete diagram. Before calling the request handler, if the IP is banned, the service closes the connection. 
 For other steps if an error occurred the service sends S_ERROR before closing connection.
 
 
