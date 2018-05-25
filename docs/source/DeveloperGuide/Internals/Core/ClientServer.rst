@@ -144,7 +144,6 @@ Here a simplified sequence diagram of client-server communication.
 
 
 
-
 In most of the cases, a RPC call follows this diagram. Before starting anything, the service checks the IP. 
 Then the client sends his certificate during the handshake and right after he sends the remote procedure
 who need to be called. The service checks the authorization and sends a signal to client when ready. The client sends 
@@ -170,7 +169,6 @@ Complete path of packages are not on the diagram for readability:
 You can see that the client sends a proposalTuple, proposalTuple contain (service, setup, ClientVO) then (typeOfCall, method) and finaly extra-credentials.
 e.g.::
   (('Framework/serviceName', 'DeveloperSetup', 'unknown'), ('RPC', 'methodName'), '')
-
 
 
 

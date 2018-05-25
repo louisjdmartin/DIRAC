@@ -4,17 +4,17 @@ from DIRAC.ConfigurationSystem.Client.PathFinder import divideFullName, getSyste
 from DIRAC.ConfigurationSystem.Client.ConfigurationData import gConfigurationData
 from DIRAC import gLogger
 
+
+# Must be a class later...
+
 def RPCClientSelector(service, setup = None):
-  serviceTuple = divideFullName( service )
-  systemSection = getSystemSection( service, serviceTuple, setup = setup )
-  url = gConfigurationData.extractOptionFromCFG( "%s/URLs/%s" % ( systemSection, serviceTuple[1] ) )
-  gLogger.debug("Try to get client for URL: %s." % url)
-  if(url[:3] == "dip"): #dip ou dips
-    gLogger.debug("Find: diset client.")
-    return RPCClient(service)
-  elif(url[:4] == "http"): #http ou https
-    gLogger.debug("Find: tornado client.")
+  try:
+    TornadoServices = gConfigurationData.extractOptionFromCFG("/HTTPServer/Services").replace(" ", "").split(',')
+  except AttributeError: # If not defined
+    TornadoServices = []
+  if(service in TornadoServices): #http ou https
+    gLogger.debug("Tornado service found, using TornadoClient.")
     return TornadoClient(service)
-  else:
-    gLogger.debug("Fail to find the client.")
-    return None
+  else: #dip ou dips
+    gLogger.debug("Tornado service not found, using RPCClient.")
+    return RPCClient(service)

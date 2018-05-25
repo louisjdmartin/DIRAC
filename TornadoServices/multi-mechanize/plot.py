@@ -1,8 +1,8 @@
 import csv
 import matplotlib.pyplot as plt
 
-testTornado = ['Tornado/results/results_2018.04.24_12.01.01']
-testDirac = ['Dirac/results/results_2018.04.24_12.11.05']
+testTornado = ['perf-test/results/results_2018.05.24_09.30.41']
+testDirac = ['perf-test/results/results_2018.05.24_09.31.53']
 
 def read_data(test, groupSize):
     with open(test+'/results.csv', 'rb') as csvfile:

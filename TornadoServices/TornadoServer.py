@@ -44,17 +44,15 @@ class TornadoServer():
     self.authManagers = {}
     self.lockManagers = {}
     self.cfgs = {}
-
     self.debug = debug
     self.setup = None
-    self.rootURL = gConfigurationData.extractOptionFromCFG("/HTTPServer/rootURL")
 
     for service in services:
       self.addServiceToTornado(service)
 
   def addServiceToTornado(self, service):
     """
-      Add a service to tornado
+      Add a service to tornado before starting server
 
       :param str service: service name
     """
@@ -66,7 +64,7 @@ class TornadoServer():
 
   def __addURLToTornado(self, service):
     serviceTuple = divideFullName(service)
-    serviceURL = r"%s%s" % (self.rootURL, service)
+    serviceURL = r"/%s" % service
     self.urls.append(
         url(
             serviceURL,
@@ -108,14 +106,13 @@ class TornadoServer():
 
     # Start server
     server = HTTPServer(router, ssl_options=ssl_ctx)
-    port = gConfigurationData.extractOptionFromCFG("/HTTPServer/port")
+    port = gConfigurationData.extractOptionFromCFG("/HTTPServer/Port")
     gLogger.always("Listening on port %s" % port)
     for service in self.services:
       gLogger.always("Active service: %s" % service)
 
     try:
       server.listen(port)
-      #server.start(0) # Fork process: 1/CPU, not sure if it's really safe
       IOLoop.current().start()
     except Exception as e:
       gLogger.fatal(e)

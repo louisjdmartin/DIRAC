@@ -23,9 +23,9 @@ class TornadoClient(object):
     serviceTuple = divideFullName(service)
     systemSection = getSystemSection(service, serviceTuple, setup=setup)
 
-    self.RPCrootURL = "%s%s" % (gConfigurationData.extractOptionFromCFG("/HTTPServer/rootURL"), service)
-    self.domain = gConfigurationData.extractOptionFromCFG("/HTTPServer/hostname")
-    self.port = gConfigurationData.extractOptionFromCFG("/HTTPServer/port")
+    self.RPCURL = "/%s" % service
+    self.domain = gConfigurationData.extractOptionFromCFG("/HTTPServer/Hostname")
+    self.port = gConfigurationData.extractOptionFromCFG("/HTTPServer/Port")
 
     # Create SSLContext and load client/CA certificates
     ssl_ctx = ssl.create_default_context()
@@ -73,7 +73,7 @@ class TornadoClient(object):
     # Start request
     conn.request(
         "POST",
-        self.RPCrootURL,
+        self.RPCURL,
         rpcCall,
         headers
     )
@@ -91,7 +91,7 @@ class TornadoClient(object):
     # Encode arguments for POST request
     args = {'args': json.dumps(args)}
     response = requests.post(
-        self.RPCrootURL + "/" + procedure,
+        self.RPCURL,
         # cert=('/root/.globus/usercert.pem', '/root/.globus/userkey.pem'), #Fonctionne
         cert=('/tmp/x509up_u0', '/tmp/x509up_u0'),  # Fonctionne pas
         verify=False,

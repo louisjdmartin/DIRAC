@@ -22,6 +22,7 @@ rpc_imp = (RPCClientTornado, RPCClientDIRAC)
 
 @parametrize('rpc', rpc_imp)
 @given(s=text(printable, max_size=64), s2=text(printable, max_size=64))
+@settings(deadline=None)
 def test_insert_get_update_service(rpc, s, s2):
   RPCClient = rpc
   service = RPCClient('Framework/User')
