@@ -18,7 +18,9 @@ This administration documentation refers to the "Core" DIRAC project.
    InstallingWebAppDIRAC/index
    InstallingVMDIRAC/index
    SystemAdministratorInterface/index
+   InstallingAndConfiguringBasics/index
    Configuration/index
+   Authentication/index
    Systems/index
    Resources/index
    DIRACSites/index
