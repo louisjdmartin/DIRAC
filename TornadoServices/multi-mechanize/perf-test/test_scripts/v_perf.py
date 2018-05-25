@@ -13,6 +13,12 @@ class Transaction(object):
     return
 
   def run(self):
-    reponse = self.client.listUsers()
-    assert (reponse['OK'] == True)
+      s = "Chaine 1"
+      s2= "Chaine 2"
+
+      newUser = self.client.addUser(s)
+      userID = int(newUser['Value'])
+      User = self.client.getUserName(userID)
+      self.client.editUser(userID, s2)
+      User = self.client.getUserName(userID)
 
