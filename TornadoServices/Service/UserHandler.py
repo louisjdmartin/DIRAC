@@ -1,11 +1,18 @@
-from RPCTornadoHandler import RPCTornadoHandler
-from DIRAC import S_OK
+from TornadoService import TornadoService
+from DIRAC import S_OK, gLogger
 from DIRAC.FrameworkSystem.Service.UserDB import UserDB
 
 
-class UserHandler(RPCTornadoHandler):
-  userDB = UserDB()
+class UserHandler(TornadoService):
+
+  @classmethod
+  def initializeHandler(cls): # Dans DIRAC on a aussi un "ServiceInfo", a voir...
+    cls.userDB = UserDB()
+    return S_OK()
+
+
   auth_addUser = ['all']
+
 
   def export_addUser(self, whom):
     """

@@ -8,9 +8,9 @@ Receive RPC and return JSON to client
 
 TODO Liste des trucs a voir:
 - Comment lancer un service apres le lancement de tornardo ?
-- Utiliser ServiceConfiguration (ish-OK)
+- Utiliser ServiceConfiguration 
 - Utiliser LockManager (OK)
-- Utiliser Monitoring  (Rien n'est fait)
+- Utiliser Monitoring  
 
 """
 
@@ -21,12 +21,9 @@ from tornado.ioloop import IOLoop
 from tornado.util import import_object
 
 from DIRAC import gLogger
-from DIRAC.Core.DISET.AuthManager import AuthManager
 from DIRAC.ConfigurationSystem.Client import PathFinder
 from DIRAC.ConfigurationSystem.Client.PathFinder import divideFullName, getSystemSection
 from DIRAC.ConfigurationSystem.Client.ConfigurationData import gConfigurationData
-from DIRAC.Core.DISET.private.LockManager import LockManager
-from DIRAC.Core.DISET.private.ServiceConfiguration import ServiceConfiguration
 
 import ssl
 import os
@@ -39,47 +36,54 @@ class TornadoServer():
   def __init__(self, services, debug=False, setup=None):
     if not isinstance(services, list):
       services = [services]
+
+    # URLs for services: 1URL/Service
     self.urls = []
     self.services = []
-    self.authManagers = {}
-    self.lockManagers = {}
-    self.cfgs = {}
-    self.debug = debug
-    self.setup = None
 
+    # Other infos
+    self.debug = debug # Used only by tornado
+    self.setup = setup
+
+    # Reading service list and add services
     for service in services:
       self.addServiceToTornado(service)
 
   def addServiceToTornado(self, service):
     """
       Add a service to tornado before starting server
+      Service can be called at https://<hostname>:<port>/<service>
+                          e.g. https://dirac.cern.ch:1234/Framework/ServiceName
 
-      :param str service: service name
+      :param str service: service name e.g. Framework/Name
+
     """
-    self.authManagers[service] = AuthManager("%s/Authorization" % PathFinder.getServiceSection(service))
-    self.cfgs[service] = ServiceConfiguration([service])
-    self.lockManagers[service] = LockManager(self.cfgs[service].getMaxWaitingPetitions())
+    # Register service in tornado
     self.__addURLToTornado(service)
     self.services.append(service)
 
-  def __addURLToTornado(self, service):
-    serviceTuple = divideFullName(service)
-    serviceURL = r"/%s" % service
-    self.urls.append(
-        url(
-            serviceURL,
-            self.__getTornadoHandler(
-                serviceTuple[1]),
-            dict(
-                AuthManager=self.authManagers[service],
-                serviceName=service,
-                LockManager=self.lockManagers[service],
-                cfg=self.cfgs[service])))
 
-  def __getTornadoHandler(self, service):
-    # TODO recuperer des services autre part, comme dans DIRAC.FrameworkSystem.Service ou un truc du style
-    gLogger.info("Intilializing handler for %s" % service)
-    return getattr(import_object("DIRAC.TornadoServices.Service.%sHandler" % service), "%sHandler" % service)
+
+  def __addURLToTornado(self, service):
+    serviceURL = r"/%s" % service
+    self.urls.append(url(serviceURL, self.__getTornadoHandlerAndInitialize(service)))
+               
+
+
+  def __getTornadoHandlerAndInitialize(self, service):
+    serviceTuple = divideFullName(service)
+    gLogger.info("Initilializing handler for %s" % service)
+
+    # TODO recuperer des services autre part ? dans DIRAC.<quelquechose>System.Service ou un truc du style ?
+    # Get the handler
+    handler = getattr(import_object("DIRAC.TornadoServices.Service.%sHandler" % serviceTuple[1]), "%sHandler" % serviceTuple[1])
+
+    # Initialize Service and handler
+    # Service is the TornadoService, who get the request
+    # Handler is the handler of the service with RPC method
+    handler.initializeService(service, self.setup)
+    handler.initializeHandler()
+    return handler
 
   def startTornado(self):
     """
@@ -107,12 +111,14 @@ class TornadoServer():
     # Start server
     server = HTTPServer(router, ssl_options=ssl_ctx)
     port = gConfigurationData.extractOptionFromCFG("/HTTPServer/Port")
-    gLogger.always("Listening on port %s" % port)
-    for service in self.services:
-      gLogger.always("Active service: %s" % service)
 
     try:
       server.listen(port)
+      gLogger.always("Listening on port %s" % port)
+
+      for service in self.services:
+        gLogger.always("Started service: %s" % service)
+
       IOLoop.current().start()
     except Exception as e:
       gLogger.fatal(e)

@@ -1,36 +1,54 @@
 from tornado.web import RequestHandler, MissingArgumentError
-from tornado.escape import url_unescape
-import OpenSSL.crypto  # TODO: Use M2CRYPTO
-from DIRAC.Core.Security.ProxyInfo import getProxyInfo
 from DIRAC.Core.Security.X509Certificate import X509Certificate
-from DIRAC.Core.Security.X509Chain import X509Chain
-import GSI
-from DIRAC import S_OK, S_ERROR, gLogger
+from DIRAC.Core.DISET.AuthManager import AuthManager
+from DIRAC.Core.DISET.private.ServiceConfiguration import ServiceConfiguration
+from DIRAC.Core.DISET.private.LockManager import LockManager
+from DIRAC.ConfigurationSystem.Client import PathFinder
 from DIRAC.Core.Utilities.JEncode import decode, encode
-from tornado import gen
-import time
+from DIRAC import S_OK, S_ERROR, gLogger
+
+# TODO: Use M2CRYPTO
+import GSI
+import OpenSSL.crypto  
 
 
-class RPCTornadoHandler(RequestHandler):
+class TornadoService(RequestHandler):
 
-  def initialize(self, AuthManager, serviceName, LockManager, cfg):
+  @classmethod
+  def initializeService(cls, serviceName, setup=None):
+    cls.authManager = AuthManager("%s/Authorization" % PathFinder.getServiceSection(serviceName))
+    cls.cfg = ServiceConfiguration([serviceName])
+    cls.lockManager = LockManager(cls.cfg.getMaxWaitingPetitions())
+    cls.serviceName = serviceName
+
+  @classmethod
+  def initializeHandler(cls):
     """
-      initialize
+      This may be overwrited when you write a DIRAC service handler
+      And it must be a class method. This method is called only one time 
+      during the initialization of the Tornado server
+
+      TODO: Implement "ServiceInfo" argument
     """
-    self.authManager = AuthManager
+    gLogger.debug("No initialization script")
+    return S_OK()
+
+
+
+  def initialize(self):
+    """
+      initialize, called at every request
+    """
     self.authorized = False
     self.method = self.get_body_argument("method")
     self.credDict = self.gatherPeerCredentialsNoProxy()
-    self.serviceName = serviceName
-    self.LockManager = LockManager
-    self.cfg = cfg
 
   def prepare(self):
     """
       prepare
       Check authorizations
     """
-    self.LockManager.lockGlobal()
+    self.lockManager.lockGlobal()
     gLogger.notice("Incoming request on %s: %s" % (self.serviceName, self.method))
     try:
       hardcodedAuth = getattr(self, 'auth_' + self.method)
@@ -45,21 +63,24 @@ class RPCTornadoHandler(RequestHandler):
       and list of arguments in JSON in "args" argument
     """
     if self.authorized:
+
+      # Get arguments if exists
       try:
         args_encoded = self.get_body_argument('args')
       except MissingArgumentError:
         args = []
       args = decode(args_encoded)[0]
 
+      # Execute the method
       try:
-        self.LockManager.lock("RPC/%s" % self.method)
+        self.lockManager.lock("RPC/%s" % self.method)
         method = getattr(self, 'export_' + self.method)
         retVal = method(*args)
         self.write(encode(retVal))
       except e:
         self.write(encode(S_ERROR(str(e))))
       finally:
-        self.LockManager.unlock("RPC/%s" % self.method)
+        self.lockManager.unlock("RPC/%s" % self.method)
     else:
       self.write(encode(S_ERROR("You're not authorized to do that.")))
 
@@ -67,13 +88,13 @@ class RPCTornadoHandler(RequestHandler):
     """
       Called after the end of HTTP request
     """
-    self.LockManager.unlockGlobal()
+    self.lockManager.unlockGlobal()
 
   def gatherPeerCredentialsNoProxy(self):
     """
       Pour l'instant j'ai pas reussi a charger la chaine entiere...
-      C'est du copier coller
-      Et ca utilise GSI au lieu de M2Crypto...
+      C'est du copier coller et ca utilise GSI au lieu de M2Crypto...
+      Il faudra changer ca avec la vrai lecture de certificats
     """
     peerChain = X509Certificate()
     peerChain.loadFromString(self.request.get_ssl_certificate(True), GSI.crypto.FILETYPE_ASN1)
