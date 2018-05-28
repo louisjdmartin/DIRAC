@@ -8,7 +8,7 @@ Receive RPC and return JSON to client
 
 TODO Liste des trucs a voir:
 - Comment lancer un service apres le lancement de tornardo ?
-- Utiliser ServiceConfiguration 
+- Utiliser ServiceConfiguration (a refaire pour tornado ?)
 - Utiliser LockManager (OK)
 - Utiliser Monitoring  
 
@@ -33,7 +33,7 @@ import urlparse
 
 class TornadoServer():
 
-  def __init__(self, services, debug=False, setup=None):
+  def __init__(self, services=[], debug=False, setup=None):
     if not isinstance(services, list):
       services = [services]
 
@@ -90,6 +90,8 @@ class TornadoServer():
       Start the tornado server when ready
       The script is blocked in the Tornado IOLoop
     """
+
+
     gLogger.debug("Starting Tornado")
     if(self.debug):
       gLogger.warn("TORNADO use debug mode, autoreload can generate unexpected effects, use it only in dev")
@@ -118,7 +120,6 @@ class TornadoServer():
 
       for service in self.services:
         gLogger.always("Started service: %s" % service)
-
       IOLoop.current().start()
     except Exception as e:
       gLogger.fatal(e)

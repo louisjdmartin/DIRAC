@@ -26,7 +26,9 @@ class TornadoClient(object):
     self.RPCURL = "/%s" % service
     self.domain = gConfigurationData.extractOptionFromCFG("/HTTPServer/Hostname")
     self.port = gConfigurationData.extractOptionFromCFG("/HTTPServer/Port")
+    self.__generateSSLContext()
 
+  def __generateSSLContext(self):
     # Create SSLContext and load client/CA certificates
     ssl_ctx = ssl.create_default_context()
     ssl_ctx.load_verify_locations(os.path.join('/root/dev/etc/grid-security/', 'hostcert.pem'))
@@ -40,7 +42,6 @@ class TornadoClient(object):
             "userkey.pem"))
     self.ssl_ctx = ssl_ctx
 
-    
   def __getattr__(self, attrname):
     """
       Return the RPC call procedure
@@ -58,8 +59,8 @@ class TornadoClient(object):
       :param args: list of arguments
       :return: decoded response from server, server may return S_OK or S_ERROR
     """
-    
-    rpcCall = urllib.urlencode({'method': method,'args': encode(args)})
+
+    rpcCall = urllib.urlencode({'method': method, 'args': encode(args)})
 
     # Create HTTP Connection
     headers = {"Content-type": "application/x-www-form-urlencoded", "Accept": "application/json"}

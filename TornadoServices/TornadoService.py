@@ -6,6 +6,7 @@ from DIRAC.Core.DISET.private.LockManager import LockManager
 from DIRAC.ConfigurationSystem.Client import PathFinder
 from DIRAC.Core.Utilities.JEncode import decode, encode
 from DIRAC import S_OK, S_ERROR, gLogger
+from tornado import gen
 
 # TODO: Use M2CRYPTO
 import GSI
@@ -17,7 +18,7 @@ class TornadoService(RequestHandler):
   @classmethod
   def initializeService(cls, serviceName, setup=None):
     cls.authManager = AuthManager("%s/Authorization" % PathFinder.getServiceSection(serviceName))
-    cls.cfg = ServiceConfiguration([serviceName])
+    cls.cfg = ServiceConfiguration([serviceName]) # TODO Use Tornado ServiceConfiguration ? (Cf. Workplan)
     cls.lockManager = LockManager(cls.cfg.getMaxWaitingPetitions())
     cls.serviceName = serviceName
 
@@ -40,7 +41,7 @@ class TornadoService(RequestHandler):
       initialize, called at every request
     """
     self.authorized = False
-    self.method = self.get_body_argument("method")
+    self.method = None
     self.credDict = self.gatherPeerCredentialsNoProxy()
 
   def prepare(self):
@@ -49,7 +50,8 @@ class TornadoService(RequestHandler):
       Check authorizations
     """
     self.lockManager.lockGlobal()
-    gLogger.notice("Incoming request on %s: %s" % (self.serviceName, self.method))
+    self.method = self.get_body_argument("method")
+    gLogger.notice("Incoming request on /%s: %s" % (self.serviceName, self.method))
     try:
       hardcodedAuth = getattr(self, 'auth_' + self.method)
     except AttributeError:
@@ -63,26 +65,29 @@ class TornadoService(RequestHandler):
       and list of arguments in JSON in "args" argument
     """
     if self.authorized:
-
-      # Get arguments if exists
-      try:
-        args_encoded = self.get_body_argument('args')
-      except MissingArgumentError:
-        args = []
-      args = decode(args_encoded)[0]
-
-      # Execute the method
-      try:
-        self.lockManager.lock("RPC/%s" % self.method)
-        method = getattr(self, 'export_' + self.method)
-        retVal = method(*args)
-        self.write(encode(retVal))
-      except e:
-        self.write(encode(S_ERROR(str(e))))
-      finally:
-        self.lockManager.unlock("RPC/%s" % self.method)
+      self.__execute_RPC()
+      
     else:
       self.write(encode(S_ERROR("You're not authorized to do that.")))
+
+  def __execute_RPC(self):
+    # Get arguments if exists
+    try:
+      args_encoded = self.get_body_argument('args')
+    except MissingArgumentError:
+      args = []
+    args = decode(args_encoded)[0]
+
+    # Execute the method
+    try:
+      self.lockManager.lock("RPC/%s" % self.method)
+      method = getattr(self, 'export_' + self.method)
+      retVal = method(*args)
+      self.write(encode(retVal))
+    except e:
+      self.write(encode(S_ERROR(str(e))))
+    finally:
+      self.lockManager.unlock("RPC/%s" % self.method)
 
   def on_finish(self):
     """
