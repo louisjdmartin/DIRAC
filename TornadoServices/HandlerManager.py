@@ -67,7 +67,9 @@ class HandlerManager(object):
 
     #Look in general dirac modules
     """
-    Le soucis de ce code c'est aue meme si on recupere bien ce qu'on veux, il y a du code qui s'execute alors qu'on n'en veux pas....
+    Le soucis de ce code c'est que meme si on recupere bien ce qu'on veux, il y a du code qui s'execute alors qu'on n'en veux pas....
+    A voir si il faut chercher dans tout DIRAC...
+
     diracModules = dir(DIRAC)
     for module in diracModules:
       if isinstance(getattr(DIRAC, module), ModuleType) and module.find("System") > 0:

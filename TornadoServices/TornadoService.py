@@ -10,7 +10,6 @@ from tornado import gen
 
 # TODO: Use M2CRYPTO
 import GSI
-import OpenSSL.crypto  
 
 
 class TornadoService(RequestHandler):
@@ -34,7 +33,7 @@ class TornadoService(RequestHandler):
 
       TODO: Implement "ServiceInfo" argument
     """
-    return S_OK()
+    pass
 
 
 
