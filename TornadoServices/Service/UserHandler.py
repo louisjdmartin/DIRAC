@@ -5,13 +5,12 @@ from DIRAC.FrameworkSystem.Service.UserDB import UserDB
 
 class UserHandler(TornadoService):
 
+  LOCATION = "/Framework/User"
+
   @classmethod
   def initializeHandler(cls): # Dans DIRAC on a aussi un "ServiceInfo", a voir...
     cls.userDB = UserDB()
     return S_OK()
-
-
-  auth_addUser = ['all']
 
 
   def export_addUser(self, whom):

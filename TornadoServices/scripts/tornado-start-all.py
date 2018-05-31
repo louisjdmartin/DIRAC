@@ -11,22 +11,26 @@ from DIRAC.ConfigurationSystem.Client.ConfigurationData import gConfigurationDat
 from DIRAC.FrameworkSystem.Client.Logger import gLogger
 from DIRAC.Core.Utilities.DErrno import includeExtensionErrors
 from DIRAC.TornadoServices.TornadoServer import TornadoServer
+from DIRAC.ConfigurationSystem.Client.PathFinder import getSystemInstance
 
 localCfg = LocalConfiguration()
+#if value and value.lower() in ( "yes", "true", "y" ):
+
+
+## TODO a reecrire !
 
 services = gConfigurationData.extractOptionFromCFG("/HTTPServer/Services").replace(" ", "").split(',')
 localCfg.addMandatoryEntry("/DIRAC/Setup")
-localCfg.addDefaultEntry( "LogLevel", "INFO" )
-localCfg.addDefaultEntry( "LogColor", True )
+localCfg.addDefaultEntry("LogLevel", "INFO")
+localCfg.addDefaultEntry("LogColor", True)
 resultDict = localCfg.loadUserData()
-if not resultDict[ 'OK' ]:
-  gLogger.initialize( serverName, "/" )
-  gLogger.error( "There were errors when loading configuration", resultDict[ 'Message' ] )
-  sys.exit( 1 )
+if not resultDict['OK']:
+  gLogger.initialize(serverName, "/")
+  gLogger.error("There were errors when loading configuration", resultDict['Message'])
+  sys.exit(1)
 
 includeExtensionErrors()
 
 
-serverToLaunch = TornadoServer(services)
+serverToLaunch = TornadoServer()
 serverToLaunch.startTornado()
-

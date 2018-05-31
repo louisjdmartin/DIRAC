@@ -1,26 +1,16 @@
 """
 TORNADO SERVER
 Receive RPC and return JSON to client
-
-
-
-
-
-TODO Liste des trucs a voir:
-- Comment lancer un service apres le lancement de tornardo ?
-- Utiliser ServiceConfiguration (a refaire pour tornado ?)
-- Utiliser LockManager (OK)
-- Utiliser Monitoring  
-
 """
 
 __RCSID__ = "$Id$"
 from tornado.httpserver import HTTPServer
 from tornado.web import Application, url
 from tornado.ioloop import IOLoop
-from tornado.util import import_object
+from DIRAC.Core.Utilities.ObjectLoader import ObjectLoader
+from HandlerManager import HandlerManager
 
-from DIRAC import gLogger
+from DIRAC import gLogger, S_ERROR
 from DIRAC.ConfigurationSystem.Client import PathFinder
 from DIRAC.ConfigurationSystem.Client.PathFinder import divideFullName, getSystemSection
 from DIRAC.ConfigurationSystem.Client.ConfigurationData import gConfigurationData
@@ -34,56 +24,23 @@ import urlparse
 class TornadoServer():
 
   def __init__(self, services=[], debug=False, setup=None):
+    #TODO? initialize services with services argument ?
+
     if not isinstance(services, list):
       services = [services]
-
     # URLs for services: 1URL/Service
     self.urls = []
     self.services = []
-
     # Other infos
     self.debug = debug # Used only by tornado
+    self.__objectLoader = ObjectLoader()
     self.setup = setup
+    self.port = 443 # Default port for HTTPS, may be changed later...
+    self.HandlerManager = HandlerManager()
 
     # Reading service list and add services
-    for service in services:
-      self.addServiceToTornado(service)
-
-  def addServiceToTornado(self, service):
-    """
-      Add a service to tornado before starting server
-      Service can be called at https://<hostname>:<port>/<service>
-                          e.g. https://dirac.cern.ch:1234/Framework/ServiceName
-
-      :param str service: service name e.g. Framework/Name
-
-    """
-    # Register service in tornado
-    self.__addURLToTornado(service)
-    self.services.append(service)
-
-
-
-  def __addURLToTornado(self, service):
-    serviceURL = r"/%s" % service
-    self.urls.append(url(serviceURL, self.__getTornadoHandlerAndInitialize(service)))
-               
-
-
-  def __getTornadoHandlerAndInitialize(self, service):
-    serviceTuple = divideFullName(service)
-    gLogger.info("Initilializing handler for %s" % service)
-
-    # TODO recuperer des services autre part ? dans DIRAC.<quelquechose>System.Service ou un truc du style ?
-    # Get the handler
-    handler = getattr(import_object("DIRAC.TornadoServices.Service.%sHandler" % serviceTuple[1]), "%sHandler" % serviceTuple[1])
-
-    # Initialize Service and handler
-    # Service is the TornadoService, who get the request
-    # Handler is the handler of the service with RPC method
-    handler.initializeService(service, self.setup)
-    handler.initializeHandler()
-    return handler
+    # If we did not gave list of service, we start all services
+    self.urls = self.HandlerManager.getHandlersURLs()
 
   def startTornado(self):
     """
@@ -112,17 +69,13 @@ class TornadoServer():
 
     # Start server
     server = HTTPServer(router, ssl_options=ssl_ctx)
-    port = gConfigurationData.extractOptionFromCFG("/HTTPServer/Port")
 
     try:
-      server.listen(port)
-      gLogger.always("Listening on port %s" % port)
-
-      for service in self.services:
-        gLogger.always("Started service: %s" % service)
-      IOLoop.current().start()
+      server.listen(self.port)
     except Exception as e:
       gLogger.fatal(e)
-
-# TODO start with special script
-#TornadoServer(["Framework/User", "Framework/Dummy"], debug=True).startTornado()
+      return S_ERROR()
+    gLogger.always("Listening on port %s" % self.port)
+    for service in self.urls:
+      gLogger.debug("Route: %s" % service)
+    IOLoop.current().start()

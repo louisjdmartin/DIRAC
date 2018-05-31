@@ -14,13 +14,16 @@ import OpenSSL.crypto
 
 
 class TornadoService(RequestHandler):
-
+  __FLAG_INIT = False
   @classmethod
   def initializeService(cls, serviceName, setup=None):
+    gLogger.warn("INIT")
+    cls.__FLAG_INIT_DONE = True
     cls.authManager = AuthManager("%s/Authorization" % PathFinder.getServiceSection(serviceName))
     cls.cfg = ServiceConfiguration([serviceName]) # TODO Use Tornado ServiceConfiguration ? (Cf. Workplan)
     cls.lockManager = LockManager(cls.cfg.getMaxWaitingPetitions())
     cls.serviceName = serviceName
+    cls.initializeHandler()
 
   @classmethod
   def initializeHandler(cls):
@@ -31,7 +34,6 @@ class TornadoService(RequestHandler):
 
       TODO: Implement "ServiceInfo" argument
     """
-    gLogger.debug("No initialization script")
     return S_OK()
 
 
@@ -40,6 +42,10 @@ class TornadoService(RequestHandler):
     """
       initialize, called at every request
     """
+    if not self.__FLAG_INIT:
+      # remove the initial "/"
+      gLogger.info("First use of %s, initializing service..." % self.request.path)
+      self.initializeService(self.request.path[1:])
     self.authorized = False
     self.method = None
     self.credDict = self.gatherPeerCredentialsNoProxy()
@@ -50,7 +56,7 @@ class TornadoService(RequestHandler):
       Check authorizations
     """
     self.lockManager.lockGlobal()
-    self.method = self.get_body_argument("method")
+    self.method = self.get_argument("method")
     gLogger.notice("Incoming request on /%s: %s" % (self.serviceName, self.method))
     try:
       hardcodedAuth = getattr(self, 'auth_' + self.method)
@@ -94,6 +100,14 @@ class TornadoService(RequestHandler):
       Called after the end of HTTP request
     """
     self.lockManager.unlockGlobal()
+
+
+
+
+
+
+
+
 
   def gatherPeerCredentialsNoProxy(self):
     """

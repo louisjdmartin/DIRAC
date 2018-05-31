@@ -17,8 +17,8 @@ from TornadoClient import TornadoClient as RPCClientTornado
 from pytest import mark
 parametrize = mark.parametrize
 
-rpc_imp = (RPCClientTornado, RPCClientDIRAC)
-
+#rpc_imp = (RPCClientTornado, RPCClientDIRAC)
+rpc_imp = (RPCClientTornado, RPCClientTornado)
 
 @parametrize('rpc', rpc_imp)
 @given(s=text(printable, max_size=64), s2=text(printable, max_size=64))

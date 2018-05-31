@@ -6,27 +6,34 @@ import requests
 import urlparse
 import time
 from DIRAC.Core.Utilities.JEncode import encode, decode
-from DIRAC.ConfigurationSystem.Client.PathFinder import divideFullName, getSystemSection
+from DIRAC.ConfigurationSystem.Client.PathFinder import divideFullName, getSystemSection, getServiceURL
 from DIRAC.ConfigurationSystem.Client.ConfigurationData import gConfigurationData
 
 
 class TornadoClient(object):
-  def __init__(self, service, setup=None):
+  def __init__(self, service, setup=None, **kwargs):
     """
       Defining useful variables
 
       :param str service: Name of the service
     """
-    self.service = service
     self.setup = setup
 
-    serviceTuple = divideFullName(service)
-    systemSection = getSystemSection(service, serviceTuple, setup=setup)
+    
+    if service.find("https") != 0: # Service at format system/service
+      url = getServiceURL(service)
+    else: # Direct URL
+      url = service
 
-    self.RPCURL = "/%s" % service
-    self.domain = gConfigurationData.extractOptionFromCFG("/HTTPServer/Hostname")
-    self.port = gConfigurationData.extractOptionFromCFG("/HTTPServer/Port")
+    url_parsed = urlparse.urlparse(url)
+    self.service = service
+    self.path = url_parsed.path
+    self.hostname = url_parsed.hostname
+    self.port = url_parsed.port
+
+
     self.__generateSSLContext()
+
 
   def __generateSSLContext(self):
     # Create SSLContext and load client/CA certificates
@@ -49,10 +56,11 @@ class TornadoClient(object):
       :return: RPC procedure
     """
     def call(*args):
-      return self.doRPC(attrname, *args)
+      return self.executeRPC(attrname, *args)
     return call
 
-  def doRPC(self, method, *args):
+
+  def executeRPC(self, method, *args):
     """
       This function call a remote service
       :param str procedure: remote procedure name
@@ -66,7 +74,7 @@ class TornadoClient(object):
     headers = {"Content-type": "application/x-www-form-urlencoded", "Accept": "application/json"}
 
     conn = httplib.HTTPSConnection(
-        self.domain,
+        self.hostname,
         port=self.port,
         context=self.ssl_ctx,
     )
@@ -74,13 +82,25 @@ class TornadoClient(object):
     # Start request
     conn.request(
         "POST",
-        self.RPCURL,
+        self.path,
         rpcCall,
         headers
     )
     # Return result after conversion json->python list
     retVal = decode(conn.getresponse().read())[0]
     return retVal
+
+
+
+    ## These method are here to match with old interface
+    def getServiceName(self):
+      return self.service
+    def getDestinationService(self):
+      return getServiceURL(self.service)
+
+
+
+
 
   def doRPC1(self, procedure, *args):
     """
@@ -92,7 +112,7 @@ class TornadoClient(object):
     # Encode arguments for POST request
     args = {'args': json.dumps(args)}
     response = requests.post(
-        self.RPCURL,
+        self.path, ## URL INCORRECTE !
         # cert=('/root/.globus/usercert.pem', '/root/.globus/userkey.pem'), #Fonctionne
         cert=('/tmp/x509up_u0', '/tmp/x509up_u0'),  # Fonctionne pas
         verify=False,

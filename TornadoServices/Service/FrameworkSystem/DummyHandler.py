@@ -1,8 +1,10 @@
-from RPCTornadoHandler import RPCTornadoHandler
+from TornadoService import TornadoService
 from DIRAC import S_OK, S_ERROR
 
-class DummyHandler(RPCTornadoHandler):
+class DummyHandler(TornadoService):
   
+  #LOCATION = "Framework/Dummy"
+
   auth_true = ['all']
   def export_true(self):
     return S_OK()
