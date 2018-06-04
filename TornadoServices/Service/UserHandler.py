@@ -49,7 +49,7 @@ class UserHandler(TornadoService):
     """
     return self.userDB.getUserName(uid)
 
-  auth_listUsers = ['all']
+  auth_listUsers = ['nobody']
 
   def export_listUsers(self):
     """

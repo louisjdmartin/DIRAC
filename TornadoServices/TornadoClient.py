@@ -39,14 +39,14 @@ class TornadoClient(object):
     # Create SSLContext and load client/CA certificates
     ssl_ctx = ssl.create_default_context()
     ssl_ctx.load_verify_locations(os.path.join('/root/dev/etc/grid-security/', 'hostcert.pem'))
-    #ssl_ctx.load_cert_chain(os.path.join('/tmp/', "x509up_u0"))
-    ssl_ctx.load_cert_chain(
-        os.path.join(
-            '/root/.globus/',
-            "usercert.pem"),
-        os.path.join(
-            '/root/.globus/',
-            "userkey.pem"))
+    ssl_ctx.load_cert_chain(os.path.join('/tmp/', "x509up_u0"))
+    #ssl_ctx.load_cert_chain(
+    #    os.path.join(
+    #        '/root/.globus/',
+    #        "usercert.pem"),
+    #    os.path.join(
+    #        '/root/.globus/',
+    #        "userkey.pem"))
     self.ssl_ctx = ssl_ctx
 
   def __getattr__(self, attrname):
@@ -92,11 +92,11 @@ class TornadoClient(object):
 
 
 
-    ## These method are here to match with old interface
-    def getServiceName(self):
-      return self.service
-    def getDestinationService(self):
-      return getServiceURL(self.service)
+  ## These method are here to match with old interface
+  def getServiceName(self):
+    return self.service
+  def getDestinationService(self):
+    return getServiceURL(self.service)
 
 
 

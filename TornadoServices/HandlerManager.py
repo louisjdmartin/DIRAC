@@ -2,7 +2,7 @@ from os.path import realpath
 from DIRAC.Core.Utilities.ObjectLoader import ObjectLoader
 from TornadoService import TornadoService
 from tornado.web import url as TornadoURL, RequestHandler
-from DIRAC import gLogger, S_ERROR, S_OK
+from DIRAC import gLogger, S_ERROR, S_OK, gConfig
 from types import ModuleType
 import DIRAC
 from DIRAC.ConfigurationSystem.Client.Helpers import CSGlobals
@@ -24,7 +24,10 @@ class HandlerManager(object):
 
   def __addHandler(self, handlerTuple, url=None):
     """
-      handlerTuple = (path, class)
+      Function who add handler to list of known handlers
+
+
+      :param handlerTuple: (path, class) --> ObjectLoader.getObjects() returns in this form, it's why we use it like this
     """
     #Check if handler not already loaded
     if not handlerTuple[0] in self.__handlers:
@@ -47,12 +50,12 @@ class HandlerManager(object):
           url = "/%s" % url
         elif url==None:
           gLogger.warn("URL not found for %s"%(handlerTuple[0]))
-          return
-
+          return S_ERROR("URL not found for %s"%(handlerTuple[0]))
       self.__handlers[handlerTuple[0]] = TornadoURL(url, handlerTuple[1])
-      gLogger.info("Added handler: %s list with URL %s"%(handlerTuple[0], url))
+      gLogger.info("New handler: %s list with URL %s"%(handlerTuple[0], url))
     else:
       gLogger.debug("Handler already loaded %s"%(handlerTuple[0]))
+    return S_OK
 
 
   def discoverHandlers(self):
@@ -60,22 +63,21 @@ class HandlerManager(object):
       Force the discovery of URL, automatic call when we try to get handlers for the first time.
       You can disable the automatic call with autoDiscovery=False at initialization and use searchHandlers
     """
-    gLogger.info("Try to discover the handlers for Tornado webserser")
+    gLogger.debug("Trying to discover the handlers for Tornado")
 
     #Look in tornado
     self.searchHandlers("DIRAC.TornadoServices.Service", ".*Handler", True)
 
     #Look in general dirac modules
-    """
-    Le soucis de ce code c'est que meme si on recupere bien ce qu'on veux, il y a du code qui s'execute alors qu'on n'en veux pas....
-    A voir si il faut chercher dans tout DIRAC...
+    #Change it and use paths from config ? But where ? /Services ? /Systems/*System/*Instance/Services ? /Systems/*System/Service ?
+    # ICI on a un soucis, certains modules (meme pas charge) vont executer du code car le ObjectLoader va executer tout les fichier pour determiner lesquels garder...
+    diracSystems = gConfig.getSections('/Systems')
+    if diracSystems['OK']:
+      for system in diracSystems['Value']:
+        gConfig.getSections('/Systems')
+        gLogger.debug ("System found: %s"%system)
+        self.searchHandlers("DIRAC.%sSystem.Service"%system, ".*Handler")
 
-    diracModules = dir(DIRAC)
-    for module in diracModules:
-      if isinstance(getattr(DIRAC, module), ModuleType) and module.find("System") > 0:
-        gLogger.warn("Looking at DIRAC.%s.Service"%module)
-        self.searchHandlers("DIRAC.%s.Service"%module, ".*Handler")
-    """
 
   def loadHandlerInHandlerManager(self, path):
     """

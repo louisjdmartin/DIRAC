@@ -14,6 +14,7 @@ from DIRAC import gLogger, S_ERROR
 from DIRAC.ConfigurationSystem.Client import PathFinder
 from DIRAC.ConfigurationSystem.Client.PathFinder import divideFullName, getSystemSection
 from DIRAC.ConfigurationSystem.Client.ConfigurationData import gConfigurationData
+from tornado.log import logging
 
 import ssl
 import os
@@ -24,6 +25,8 @@ import urlparse
 class TornadoServer():
 
   def __init__(self, services=[], debug=False, setup=None):
+
+
     #TODO? initialize services with services argument ?
 
     if not isinstance(services, list):
@@ -77,5 +80,5 @@ class TornadoServer():
       return S_ERROR()
     gLogger.always("Listening on port %s" % self.port)
     for service in self.urls:
-      gLogger.debug("Route: %s" % service)
+      gLogger.debug("Available service: %s" % service)
     IOLoop.current().start()
