@@ -15,27 +15,27 @@ import ssl
 
 
 class TornadoService(RequestHandler):
-  __FLAG_INIT = False
+  __FLAG_INIT_DONE = False
 
   @classmethod
   def initializeService(cls, serviceName, url, setup=None):
+    cls.log = gLogger
+    cls.log.info("First use of %s, initializing service..." % url)
     cls.__FLAG_INIT_DONE = True
     cls.authManager = AuthManager("%s/Authorization" % PathFinder.getServiceSection(serviceName))
-    cls.cfg = ServiceConfiguration([serviceName])  # TODO Use Tornado ServiceConfiguration ? (Cf. Workplan)
+    cls.cfg = ServiceConfiguration([serviceName])
     cls.lockManager = LockManager(cls.cfg.getMaxWaitingPetitions())
     cls.serviceName = serviceName
-    cls.initializeHandler()
-    cls.log = gLogger
-    cls._serviceInfoDict = {'serviceName': serviceName,
-                            'serviceSectionPath': PathFinder.getServiceSection(serviceName),
-                            #'validNames' : self._validNames,
-                            #'csPaths' : [ PathFinder.getServiceSection( svcName ) for svcName in self._validNames ]
-                            }
-
-    cls.log.info("First use of %s, initializing service..." % url)
+    serviceInfo = {'serviceName': serviceName,
+                   'serviceSectionPath': PathFinder.getServiceSection(serviceName),
+                   #'validNames' : self._validNames,
+                   'csPaths': [PathFinder.getServiceSection(serviceName)]
+                   }
+    cls._serviceInfoDict = serviceInfo
+    cls.initializeHandler(serviceInfo)
 
   @classmethod
-  def initializeHandler(cls):
+  def initializeHandler(cls, serviceInfoDict):
     """
       This may be overwrited when you write a DIRAC service handler
       And it must be a class method. This method is called only one time
@@ -49,8 +49,7 @@ class TornadoService(RequestHandler):
     """
       initialize, called at every request
     """
-    if not self.__FLAG_INIT:
-      # remove the initial "/"
+    if not self.__FLAG_INIT_DONE:
       self.initializeService(self.request.path[1:], self.request.path)
     self.authorized = False
     self.method = None
@@ -109,7 +108,7 @@ class TornadoService(RequestHandler):
       method = getattr(self, 'export_' + self.method)
       retVal = method(*args)
       self.write(encode(retVal))
-    except e:
+    except Exception as e:
       self.write(encode(S_ERROR(str(e))))
     finally:
       self.lockManager.unlock("RPC/%s" % self.method)
@@ -132,7 +131,7 @@ class TornadoService(RequestHandler):
     peerChain = X509Certificate()
     peerChain.loadFromString(self.request.get_ssl_certificate(True), GSI.crypto.FILETYPE_ASN1)
 
-    certList = X509Chain()
+    #certList = X509Chain()
     # print certList.loadChainFromString(self.request.get_ssl_certificate(True), GSI.crypto.FILETYPE_ASN1)
     #print (certList.isProxy())
     isProxyChain = False  # certList.isProxy()['Value']
@@ -209,9 +208,9 @@ class TornadoService(RequestHandler):
     return S_ERROR("This method does not exist in Tornado requesthandler")
 
   def srv_getServiceName(cls):
-    return cls.serviceSection['serviceName']
+    return cls._serviceInfoDict['serviceName']
   """
-  TODO: Reimplement sericeInfoDict
+  TODO: Reimplement serviceInfoDict
 
   def srv_getClientSetup(self):
     return self.serviceInfoDict['clientSetup']
@@ -228,37 +227,9 @@ class TornadoService(RequestHandler):
     return S_ERROR("This method does not exist in Tornado requesthandler, you are using interface from DISET requestHandler")
 
   def srv_getURL(self):
-    gLogger.warn("You're using old interface, please update your script, you are using interface from DISET requestHandler")
     return self.request.path
-
+  """
   @classmethod
   def srv_getMonitor(cls):
     return cls.__monitor
-
-  def srv_msgReply(self, msgObj):
-    gLogger.warn("This method (srv_msgReply) does not exist in Tornado requesthandler, you are using interface from DISET requestHandler, please use self.write() if needed")
-    return S_ERROR(
-        "This method does not exist in Tornado requesthandler, you are using interface from DISET requestHandler, please use self.write if needed")
-
-  @classmethod
-  def srv_msgSend(cls, trid, msgObj):
-    gLogger.warn("This method (srv_msgReply) does not exist in Tornado requesthandler, you are using interface from DISET requestHandler, please use self.write() if needed")
-    return S_ERROR(
-        "This method does not exist in Tornado requesthandler, you are using interface from DISET requestHandler, please use self.write if needed")
-
-  @classmethod
-  def srv_msgCreate(cls, msgName):
-    gLogger.warn(
-        "This method (srv_msgCreate) does not exist in Tornado requesthandler, you are using interface from DISET requestHandler")
-    return S_ERROR("This method does not exist in Tornado requesthandler, you are using interface from DISET requestHandler")
-
-  @classmethod
-  def srv_disconnectClient(cls, trid):
-    gLogger.warn(
-        "This method (srv_disconnectClient) does not exist in Tornado requesthandler, you are using interface from DISET requestHandler")
-    return S_ERROR("This method does not exist in Tornado requesthandler, you are using interface from DISET requestHandler")
-
-  def srv_disconnect(self, trid=None):
-    gLogger.warn(
-        "This method (srv_disconnect) does not exist in Tornado requesthandler, you are using interface from DISET requestHandler")
-    return S_ERROR("This method does not exist in Tornado requesthandler, you are using interface from DISET requestHandler")
+  """

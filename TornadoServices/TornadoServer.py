@@ -23,6 +23,13 @@ import urlparse
 
 
 class TornadoServer():
+  """
+    Tornado webserver
+    at init if we pass service list it will load only these services
+    if not it will try yo discover all handlers available
+  """
+
+
 
   def __init__(self, services=[], debug=False, setup=None):
 
@@ -36,13 +43,15 @@ class TornadoServer():
     self.services = []
     # Other infos
     self.debug = debug # Used only by tornado
-    self.__objectLoader = ObjectLoader()
     self.setup = setup
-    self.port = 443 # Default port for HTTPS, may be changed later...
+    self.port = 443 # Default port for HTTPS, may be changed later via config file ?
     self.HandlerManager = HandlerManager()
 
     # Reading service list and add services
     # If we did not gave list of service, we start all services
+    if not services == []:
+      self.HandlerManager.loadHandlersByServiceName(services)
+
     self.urls = self.HandlerManager.getHandlersURLs()
 
   def startTornado(self):
@@ -72,7 +81,6 @@ class TornadoServer():
 
     # Start server
     server = HTTPServer(router, ssl_options=ssl_ctx)
-
     try:
       server.listen(self.port)
     except Exception as e:

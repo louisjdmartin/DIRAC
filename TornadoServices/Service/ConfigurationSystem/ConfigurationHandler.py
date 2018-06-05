@@ -17,6 +17,17 @@ def initializeConfigurationHandler(serviceInfo):
   return S_OK()
 
 
+"""
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!
+  !JUST COPY-PASTE FOR NOW!
+  !!!!!!!!!!!!!!!!!!!!!!!!!
+
+"""
+
+
+
+
 class ConfigurationHandler(TornadoService):
   """ The CS handler
   """

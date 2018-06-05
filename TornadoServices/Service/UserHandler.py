@@ -8,11 +8,12 @@ class UserHandler(TornadoService):
   LOCATION = "/Framework/User"
 
   @classmethod
-  def initializeHandler(cls): # Dans DIRAC on a aussi un "ServiceInfo", a voir...
+  def initializeHandler(cls, serviceInfoDict): 
     cls.userDB = UserDB()
     return S_OK()
 
 
+  auth_addUser = ['all']
   def export_addUser(self, whom):
     """
     Add a user
@@ -49,7 +50,7 @@ class UserHandler(TornadoService):
     """
     return self.userDB.getUserName(uid)
 
-  auth_listUsers = ['nobody']
+  auth_listUsers = ['all']
 
   def export_listUsers(self):
     """

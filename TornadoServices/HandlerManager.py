@@ -6,6 +6,8 @@ from DIRAC import gLogger, S_ERROR, S_OK, gConfig
 from types import ModuleType
 import DIRAC
 from DIRAC.ConfigurationSystem.Client.Helpers import CSGlobals
+from DIRAC.Core.Base.private.ModuleLoader import ModuleLoader
+from DIRAC.ConfigurationSystem.Client import PathFinder
 
 from DIRAC.ConfigurationSystem.Client.PathFinder import divideFullName
 class HandlerManager(object):
@@ -20,6 +22,8 @@ class HandlerManager(object):
     self.__objectLoader = ObjectLoader()
     self.setup = setup
     self.__autoDiscovery = autoDiscovery
+    self.loader = ModuleLoader( "Service",PathFinder.getServiceSection,RequestHandler, moduleSuffix = "Handler" )
+
 
 
   def __addHandler(self, handlerTuple, url=None):
@@ -30,7 +34,7 @@ class HandlerManager(object):
       :param handlerTuple: (path, class) --> ObjectLoader.getObjects() returns in this form, it's why we use it like this
     """
     #Check if handler not already loaded
-    if not handlerTuple[0] in self.__handlers:
+    if not url or not url in self.__handlers:
       gLogger.debug("Find new handler %s"%(handlerTuple[0]))
 
       #If url is not given, try to discover it
@@ -44,15 +48,19 @@ class HandlerManager(object):
         except AttributeError:
           gLogger.debug("No location defined for %s try to get it from path" % handlerTuple[0])
           url = self.__urlFinder(handlerTuple[0])
-        # We add "/" if missing at begin, e.g. we found "Framework/Service"
-        # URL can't be relative in Tornado
-        if not url==None and url.find('/')!=0:
-          url = "/%s" % url
-        elif url==None:
-          gLogger.warn("URL not found for %s"%(handlerTuple[0]))
-          return S_ERROR("URL not found for %s"%(handlerTuple[0]))
-      self.__handlers[handlerTuple[0]] = TornadoURL(url, handlerTuple[1])
-      gLogger.info("New handler: %s list with URL %s"%(handlerTuple[0], url))
+        
+
+      # We add "/" if missing at begin, e.g. we found "Framework/Service"
+      # URL can't be relative in Tornado
+      if url and not url.find('/') == 0:
+        url = "/%s" % url
+      elif not url:
+        gLogger.warn("URL not found for %s"%(handlerTuple[0]))
+        return S_ERROR("URL not found for %s"%(handlerTuple[0]))
+
+      #Finally add the URL to handlers
+      self.__handlers[url] = TornadoURL(url, handlerTuple[1])
+      gLogger.info("New handler: %s with URL %s"%(handlerTuple[0], url))
     else:
       gLogger.debug("Handler already loaded %s"%(handlerTuple[0]))
     return S_OK
@@ -66,20 +74,29 @@ class HandlerManager(object):
     gLogger.debug("Trying to discover the handlers for Tornado")
 
     #Look in tornado
-    self.searchHandlers("DIRAC.TornadoServices.Service", ".*Handler", True)
+    self.searchHandlers("DIRAC.TornadoServices.Service", recurse=True)
 
-    #Look in general dirac modules
-    #Change it and use paths from config ? But where ? /Services ? /Systems/*System/*Instance/Services ? /Systems/*System/Service ?
-    # ICI on a un soucis, certains modules (meme pas charge) vont executer du code car le ObjectLoader va executer tout les fichier pour determiner lesquels garder...
+    #Look in extensions
+    for extName in CSGlobals.getCSExtensions():
+      if extName.rfind( "DIRAC" ) != len( extName ) - 5:
+        extName = "%sDIRAC" % extName
+      self.searchHandlers(extName, recurse=True)
+
+    #Look in config file
     diracSystems = gConfig.getSections('/Systems')
+    serviceList = []
     if diracSystems['OK']:
       for system in diracSystems['Value']:
-        gConfig.getSections('/Systems')
-        gLogger.debug ("System found: %s"%system)
-        self.searchHandlers("DIRAC.%sSystem.Service"%system, ".*Handler")
+        instance = PathFinder.getSystemInstance(system)
+        services = gConfig.getSections('/Systems/%s/%s/Services'% (system, instance))
+        if services['OK']:
+          for service in services['Value']:
+            serviceList.append("%s/%s" % (system, service))
+    self.loadHandlersByServiceName(serviceList)
 
 
-  def loadHandlerInHandlerManager(self, path):
+
+  def loadHandlerInHandlerManager(self, path, url=None):
     """
       Manually import a handler with name
 
@@ -87,7 +104,23 @@ class HandlerManager(object):
     """
     handler = self.__objectLoader.loadObject(path)
     if handler['OK']:
-      self.__addHandler((path, handler['Value']))
+      self.__addHandler((path, handler['Value']), url)
+      return S_OK()
+    return S_ERROR()
+
+  def loadHandlersByServiceName(self, servicesNames):
+    """
+      Load a list of handler from list of service using DIRAC moduleLoader
+
+      :param servicesNames: list of service, e.g. ['Framework/Hello', 'Configuration/ConfigurationTornado']
+    """
+
+
+    # Use DIRAC system to load: search in CS if path is given and if not defined 
+    # it search in place it should be (e.g. in DIRAC/FrameworkSystem/Service)
+    self.loader.loadModules(servicesNames, hideExceptions=True)['OK']
+    for module in self.loader.getModules().values():
+      self.__addHandler((module['loadName'],module['classObj']), module['modName'])
 
   def searchHandlers(self, module, reFilter = "", recurse=False):
     """
@@ -99,9 +132,11 @@ class HandlerManager(object):
       :param bool recurse: Recursive search
     """
     handlers = self.__objectLoader.getObjects(module, parentClass=RequestHandler, recurse=recurse, reFilter=reFilter)
-    if handlers["OK"]:
+    if handlers["OK"] and len(handlers["Value"])>0:
       for handler in handlers['Value'].items():
         self.__addHandler(handler)
+      return S_OK()
+    return S_ERROR()
 
         
 
