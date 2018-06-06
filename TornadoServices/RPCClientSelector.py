@@ -30,8 +30,7 @@ def RPCClientSelector(*args, **kwargs): #We use same interface as RPCClient
       rpc = TornadoClient(*args, **kwargs)
     else:
       rpc = RPCClient(*args, **kwargs)
-  except Exception, e:
-    print e 
+  except Exception as e:
     # If anything wen't wrong in the resolution, we return default RPCClient
     # So the comportement is exactly the same as before implementation of Tornado
     rpc = RPCClient(*args, **kwargs)

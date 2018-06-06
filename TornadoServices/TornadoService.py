@@ -23,12 +23,12 @@ class TornadoService(RequestHandler):
     cls.log.info("First use of %s, initializing service..." % url)
     cls.__FLAG_INIT_DONE = True
     cls.authManager = AuthManager("%s/Authorization" % PathFinder.getServiceSection(serviceName))
-    cls.cfg = ServiceConfiguration([serviceName])
-    cls.lockManager = LockManager(cls.cfg.getMaxWaitingPetitions())
+    cls._cfg = ServiceConfiguration([serviceName])
+    cls.lockManager = LockManager(cls._cfg.getMaxWaitingPetitions())
     cls.serviceName = serviceName
+    cls._validNames = [serviceName]
     serviceInfo = {'serviceName': serviceName,
                    'serviceSectionPath': PathFinder.getServiceSection(serviceName),
-                   #'validNames' : self._validNames,
                    'csPaths': [PathFinder.getServiceSection(serviceName)]
                    }
     cls._serviceInfoDict = serviceInfo
@@ -45,7 +45,7 @@ class TornadoService(RequestHandler):
     """
     pass
 
-  def initialize(self):
+  def initialize(self, monitor, stats):
     """
       initialize, called at every request
     """
@@ -53,7 +53,17 @@ class TornadoService(RequestHandler):
       self.initializeService(self.request.path[1:], self.request.path)
     self.authorized = False
     self.method = None
+    self._monitor = monitor
     self.credDict = self.gatherPeerCredentialsNoProxy()
+    stats['requests'] += 1
+    self._monitor.setComponentExtraParam('queries', stats['requests'])
+    self.stats = stats
+
+
+    try:
+      self.monReport = self.__startReportToMonitoring()
+    except Exception:
+      self.monReport = False
 
   def prepare(self):
     """
@@ -118,6 +128,8 @@ class TornadoService(RequestHandler):
       Called after the end of HTTP request
     """
     self.lockManager.unlockGlobal()
+    if self.monReport:
+      self.__endReportToMonitoring( *monReport )
 
   def gatherPeerCredentialsNoProxy(self):
     """
@@ -155,6 +167,38 @@ class TornadoService(RequestHandler):
     if diracGroup['OK'] and diracGroup['Value']:
       credDict['group'] = diracGroup['Value']
     return credDict
+
+####
+#
+# Monitoring methods
+#
+####
+  def __startReportToMonitoring( self ):
+    self._monitor.addMark( "Queries" )
+    now = time.time()
+    stats = os.times()
+    cpuTime = stats[0] + stats[2]
+    if now - self.stats["monitorLastStatsUpdate"] < 0:
+      return ( now, cpuTime )
+    # Send CPU consumption mark
+    wallClock = now - self.__monitorLastStatsUpdate
+    self.stats["monitorLastStatsUpdate"] = now
+    # Send Memory consumption mark
+    membytes = MemStat.VmB( 'VmRSS:' )
+    if membytes:
+      mem = membytes / ( 1024. * 1024. )
+      self._monitor.addMark( 'MEM', mem )
+    return ( now, cpuTime )
+
+  def __endReportToMonitoring( self, initialWallTime, initialCPUTime ):
+    wallTime = time.time() - initialWallTime
+    stats = os.times()
+    cpuTime = stats[0] + stats[2] - initialCPUTime
+    percentage = cpuTime / wallTime * 100.
+    if percentage > 0:
+      self._monitor.addMark( 'CPU', percentage )
+
+
 
 ####
 #

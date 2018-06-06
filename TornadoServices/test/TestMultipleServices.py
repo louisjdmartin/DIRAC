@@ -13,5 +13,5 @@ def test_service_user():
   assert service.listUsers()['OK'] == True
 
 def test_service_dummy():
-  service = TornadoClient('Framework/Dummy')
+  service = TornadoClient('Framework/DummyTornado')
   assert service.true()['OK'] == True
