@@ -9,7 +9,7 @@ import sys
 from DIRAC.ConfigurationSystem.Client.LocalConfiguration import LocalConfiguration
 from DIRAC.FrameworkSystem.Client.Logger import gLogger
 from DIRAC.Core.Utilities.DErrno import includeExtensionErrors
-from DIRAC.TornadoServices.TornadoServer import TornadoServer
+from DIRAC.TornadoServices.Server.TornadoServer import TornadoServer
 
 localCfg = LocalConfiguration()
 

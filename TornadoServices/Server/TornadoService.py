@@ -18,7 +18,9 @@ class TornadoService(RequestHandler):
   __FLAG_INIT_DONE = False
 
   @classmethod
-  def initializeService(cls, serviceName, url, setup=None):
+  def initializeService(cls, url, setup=None):
+    serviceName = url[1:]
+
     cls.log = gLogger
     cls.log.info("First use of %s, initializing service..." % url)
     cls.__FLAG_INIT_DONE = True
@@ -49,8 +51,7 @@ class TornadoService(RequestHandler):
     """
       initialize, called at every request
     """
-    if not self.__FLAG_INIT_DONE:
-      self.initializeService(self.request.path[1:], self.request.path)
+
     self.authorized = False
     self.method = None
     self._monitor = monitor
@@ -85,6 +86,7 @@ class TornadoService(RequestHandler):
       Call the remote method, client may send his method via "method" argument
       and list of arguments in JSON in "args" argument
     """
+
     if self.authorized:
       self.__execute_RPC()
 
@@ -119,7 +121,11 @@ class TornadoService(RequestHandler):
       retVal = method(*args)
       self.write(encode(retVal))
     except Exception as e:
-      self.write(encode(S_ERROR(str(e))))
+      ## If we try to ping server, can be redifined with export_ping method
+      if(self.method == 'ping'):
+        self.write(encode(S_OK()))
+      else:
+        self.write(encode(S_ERROR(str(e))))
     finally:
       self.lockManager.unlock("RPC/%s" % self.method)
 

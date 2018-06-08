@@ -4,38 +4,31 @@ Receive RPC and return JSON to client
 """
 
 __RCSID__ = "$Id$"
+import time
+import ssl
+import os
+
 from tornado.httpserver import HTTPServer
 from tornado.web import Application, url
 from tornado.ioloop import IOLoop
-from DIRAC.Core.Utilities.ObjectLoader import ObjectLoader
-from HandlerManager import HandlerManager
-from DIRAC import gLogger, S_ERROR, S_OK
-from DIRAC.ConfigurationSystem.Client import PathFinder
-from DIRAC.ConfigurationSystem.Client.PathFinder import divideFullName, getSystemSection
-from DIRAC.ConfigurationSystem.Client.ConfigurationData import gConfigurationData
-from DIRAC.FrameworkSystem.Client.MonitoringClient import MonitoringClient
-from tornado.log import logging
-from DIRAC.Core.Utilities import Time, MemStat
-import time
 
-import ssl
-import os
 import DIRAC
-import urlparse
+from DIRAC.TornadoServices.Server.HandlerManager import HandlerManager
+from DIRAC import gLogger, S_ERROR, S_OK
+from DIRAC.FrameworkSystem.Client.MonitoringClient import MonitoringClient
+from DIRAC.Core.Utilities import Time
 
 
-class TornadoServer():
+
+class TornadoServer(object):
   """
     Tornado webserver
     at init if we pass service list it will load only these services
     if not it will try yo discover all handlers available
   """
 
-  def __init__(self, services=[], debug=False, setup=None):
-
-    # TODO? initialize services with services argument ?
-
-    if not isinstance(services, list):
+  def __init__(self, services=None, debug=False, setup=None):
+    if services and not isinstance(services, list):
       services = [services]
     # URLs for services: 1URL/Service
     self.urls = []
@@ -43,16 +36,18 @@ class TornadoServer():
     self.debug = debug  # Used only by tornado
     self.setup = setup
     self.port = 443  # Default port for HTTPS, may be changed later via config file ?
-    self.HandlerManager = HandlerManager()
+    self.handlerManager = HandlerManager()
     self._monitor = MonitoringClient()
     self.stats = {'requests' : 0, 'monitorLastStatsUpdate':time.time()}
-    # Reading service list and add services
-    # If we did not gave list of service, we start all services
-    if not services == []:
-      self.HandlerManager.loadHandlersByServiceName(services)
 
-    handlerDict = self.HandlerManager.getHandlersDict()
+    # If services are defined, load only these ones (useful for debug purpose)
+    if services and services != []:
+      self.handlerManager.loadHandlersByServiceName(services)
+
+    # if no service list is given, load services from configuration
+    handlerDict = self.handlerManager.getHandlersDict()
     for key in handlerDict.keys():
+      handlerDict[key].initializeService(key)
       self.urls.append(url(key, handlerDict[key], dict(monitor=self._monitor, stats=self.stats)))
 
   def startTornado(self):
@@ -63,7 +58,8 @@ class TornadoServer():
 
     gLogger.debug("Starting Tornado")
     self._initMonitoring()
-    if(self.debug):
+
+    if self.debug:
       gLogger.warn("TORNADO use debug mode, autoreload can generate unexpected effects, use it only in dev")
 
     router = Application(self.urls, debug=self.debug)
@@ -100,12 +96,6 @@ class TornadoServer():
     self._monitor.registerActivity("Queries", "Queries served", "Framework", "queries", MonitoringClient.OP_RATE)
     self._monitor.registerActivity('CPU', "CPU Usage", 'Framework', "CPU,%", MonitoringClient.OP_MEAN, 600)
     self._monitor.registerActivity('MEM', "Memory Usage", 'Framework', 'Memory,MB', MonitoringClient.OP_MEAN, 600)
-    self._monitor.registerActivity(
-        'PendingQueries',
-        "Pending queries",
-        'Framework',
-        'queries',
-        MonitoringClient.OP_MEAN)
 
     self._monitor.setComponentExtraParam('DIRACVersion', DIRAC.version)
     self._monitor.setComponentExtraParam('platform', DIRAC.getPlatform())

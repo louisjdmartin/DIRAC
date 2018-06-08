@@ -10,7 +10,7 @@ from DIRAC.ConfigurationSystem.Client.LocalConfiguration import LocalConfigurati
 from DIRAC.ConfigurationSystem.Client.ConfigurationData import gConfigurationData
 from DIRAC.FrameworkSystem.Client.Logger import gLogger
 from DIRAC.Core.Utilities.DErrno import includeExtensionErrors
-from DIRAC.TornadoServices.TornadoServer import TornadoServer
+from DIRAC.TornadoServices.Server.TornadoServer import TornadoServer
 from DIRAC.ConfigurationSystem.Client.PathFinder import getSystemInstance
 
 localCfg = LocalConfiguration()
@@ -19,7 +19,6 @@ localCfg = LocalConfiguration()
 
 ## TODO a reecrire !
 
-services = gConfigurationData.extractOptionFromCFG("/HTTPServer/Services").replace(" ", "").split(',')
 localCfg.addMandatoryEntry("/DIRAC/Setup")
 localCfg.addDefaultEntry("LogLevel", "INFO")
 localCfg.addDefaultEntry("LogColor", True)

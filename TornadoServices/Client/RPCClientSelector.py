@@ -1,4 +1,4 @@
-from TornadoClient import TornadoClient
+from DIRAC.TornadoServices.Client.TornadoClient import TornadoClient
 from DIRAC.Core.DISET.RPCClient import RPCClient
 from DIRAC.ConfigurationSystem.Client.PathFinder import getServiceURL
 from DIRAC import gLogger
@@ -24,8 +24,8 @@ def RPCClientSelector(*args, **kwargs): #We use same interface as RPCClient
       completeUrl = getServiceURL(serviceName) 
       gLogger.verbose("URL resolved: %s" % completeUrl)
     else:
-      completeURL = serviceName
-    if completeUrl.find("https") == 0:
+      completeUrl = serviceName
+    if completeUrl.startswith("http"):
       gLogger.info("Using HTTPS for service %s" % serviceName)
       rpc = TornadoClient(*args, **kwargs)
     else:

@@ -4,7 +4,7 @@
 """
 
 
-from TornadoClient import TornadoClient
+from DIRAC.TornadoServices.Client.TornadoClient import TornadoClient
 
 
 

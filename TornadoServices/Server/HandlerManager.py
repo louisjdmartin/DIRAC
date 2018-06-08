@@ -2,7 +2,6 @@
 
 from os.path import realpath
 from DIRAC.Core.Utilities.ObjectLoader import ObjectLoader
-from TornadoService import TornadoService
 from tornado.web import url as TornadoURL, RequestHandler
 from DIRAC import gLogger, S_ERROR, S_OK, gConfig
 from types import ModuleType
@@ -11,6 +10,7 @@ from DIRAC.ConfigurationSystem.Client.Helpers import CSGlobals
 from DIRAC.Core.Base.private.ModuleLoader import ModuleLoader
 from DIRAC.ConfigurationSystem.Client import PathFinder
 from DIRAC.ConfigurationSystem.Client.PathFinder import divideFullName
+from DIRAC.ConfigurationSystem.Client.PathFinder import getServiceURL
 
 
 class HandlerManager(object):
@@ -85,7 +85,11 @@ class HandlerManager(object):
         services = gConfig.getSections('/Systems/%s/%s/Services' % (system, instance))
         if services['OK']:
           for service in services['Value']:
-            serviceList.append("%s/%s" % (system, service))
+            newservice = ("%s/%s" % (system, service))
+            newserviceurl = getServiceURL(newservice) 
+            if newserviceurl.startswith('http'):
+              serviceList.append(newservice)
+
     self.loadHandlersByServiceName(serviceList)
 
 
@@ -102,10 +106,13 @@ class HandlerManager(object):
     if not isinstance(servicesNames, list):
       servicesNames = [servicesNames]
 
-    load = self.loader.loadModules(servicesNames, hideExceptions=True)
+    load = self.loader.loadModules(servicesNames)
     if load['OK']:
       for module in self.loader.getModules().values():
-        self.__addHandler((module['loadName'], module['classObj']), module['modName'])
+        url = getServiceURL(module['loadName']) 
+        serviceTuple = url.replace('https://', '').split('/')[-2:]
+        url = "%s/%s" % (serviceTuple[0], serviceTuple[1])
+        self.__addHandler((module['loadName'], module['classObj']), url)
       return S_OK()
     return load
 

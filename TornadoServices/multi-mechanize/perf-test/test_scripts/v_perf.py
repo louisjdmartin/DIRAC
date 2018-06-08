@@ -1,4 +1,4 @@
-from TornadoClient import TornadoClient
+from DIRAC.TornadoServices.Client.TornadoClient import TornadoClient
 from DIRAC.Core.DISET.RPCClient import RPCClient
 from time import time
 import sys
