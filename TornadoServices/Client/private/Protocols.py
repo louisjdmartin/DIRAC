@@ -1,0 +1,3 @@
+gProtocolList = ['https'] 
+
+gDefaultProtocol = 'https'
