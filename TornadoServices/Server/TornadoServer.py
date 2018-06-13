@@ -65,6 +65,7 @@ class TornadoServer(object):
     router = Application(self.urls, debug=self.debug)
 
     cert_dir = "%s/etc/grid-security/" % DIRAC.rootPath
+    print cert_dir
 
     # Define SSLContext
     ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=os.path.join(cert_dir, "hostcert.pem"))

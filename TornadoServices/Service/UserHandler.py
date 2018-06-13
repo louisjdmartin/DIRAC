@@ -1,4 +1,4 @@
-from TornadoService import TornadoService
+from DIRAC.TornadoServices.Server.TornadoService import TornadoService
 from DIRAC import S_OK, gLogger
 from DIRAC.FrameworkSystem.Service.UserDB import UserDB
 

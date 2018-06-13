@@ -1,6 +1,9 @@
 """
     Test if same service work on DIRAC and TORNADO
-    Testing if basic operation works
+    Testing if basic operation works on a dummy example
+    
+    
+    WARNING: It's an integration test, services must be started before running this test
 """
 
 
@@ -17,13 +20,12 @@ from DIRAC.TornadoServices.Client.TornadoClient import TornadoClient as RPCClien
 from pytest import mark
 parametrize = mark.parametrize
 
-#rpc_imp = (RPCClientTornado, RPCClientDIRAC)
 rpc_imp = ((RPCClientTornado, 'Framework/User'), (RPCClientDIRAC, 'Framework/UserDirac'))
 
 @parametrize('rpc', rpc_imp)
 @given(s=text(printable, max_size=64), s2=text(printable, max_size=64))
 @settings(deadline=None, max_examples=4)
-def test_insert_get_update_service(rpc, s, s2):
+def test_insert_get_service(rpc, s, s2):
   service = rpc[0](rpc[1])
 
   # Create a user

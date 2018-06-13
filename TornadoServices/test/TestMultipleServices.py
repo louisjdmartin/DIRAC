@@ -1,6 +1,5 @@
 """
-    Test if same service work on DIRAC and TORNADO
-    Testing if basic operation works
+    Integratopm test to test if Tornado can run multiple services
 """
 
 
