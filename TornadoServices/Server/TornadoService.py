@@ -7,6 +7,8 @@ from DIRAC.Core.DISET.private.LockManager import LockManager
 from DIRAC.ConfigurationSystem.Client import PathFinder
 from DIRAC.Core.Utilities.JEncode import decode, encode
 from DIRAC import S_OK, S_ERROR, gLogger
+from DIRAC.Core.Security.ProxyInfo import getProxyInfo
+
 from tornado import gen
 
 # TODO: Use M2CRYPTO
@@ -42,8 +44,6 @@ class TornadoService(RequestHandler):
       This may be overwrited when you write a DIRAC service handler
       And it must be a class method. This method is called only one time
       during the initialization of the Tornado server
-
-      TODO: Implement "ServiceInfo" argument
     """
     pass
 
@@ -55,11 +55,10 @@ class TornadoService(RequestHandler):
     self.authorized = False
     self.method = None
     self._monitor = monitor
-    self.credDict = self.gatherPeerCredentialsNoProxy()
+    self.credDict = self.gatherPeerCredentials()
     stats['requests'] += 1
     self._monitor.setComponentExtraParam('queries', stats['requests'])
     self.stats = stats
-
 
     try:
       self.monReport = self.__startReportToMonitoring()
@@ -121,9 +120,9 @@ class TornadoService(RequestHandler):
       retVal = method(*args)
       self.write(encode(retVal))
     except Exception as e:
-      ## If we try to ping server, can be redifined with export_ping method
+      # If we try to ping server, can be redifined be defining a export_ping method
       if(self.method == 'ping'):
-        self.write(encode(S_OK()))
+        self.write(encode(S_OK('pong')))
       else:
         self.write(encode(S_ERROR(str(e))))
     finally:
@@ -135,35 +134,29 @@ class TornadoService(RequestHandler):
     """
     self.lockManager.unlockGlobal()
     if self.monReport:
-      self.__endReportToMonitoring( *monReport )
+      self.__endReportToMonitoring(*monReport)
 
-  def gatherPeerCredentialsNoProxy(self):
+  def gatherPeerCredentials(self):
     """
-      Pour l'instant j'ai pas reussi a charger la chaine entiere...
-      C'est du copier coller et ca utilise GSI au lieu de M2Crypto...
-      Il faudra changer ca avec la vrai lecture de certificats
-
-      Il faut aussi remplir le serviceInfoDict ou ajouter un dict (hors variable de classe)
-      avec les infos pour les fonctions srv_getClientSetup / srv_getClientVO
+      Load client certchain in DIRAC and extract informations
     """
-    peerChain = X509Certificate()
-    peerChain.loadFromString(self.request.get_ssl_certificate(True), GSI.crypto.FILETYPE_ASN1)
+    chainAsText = self.request.connection.stream.socket.get_peer_cert().as_pem()
+    peerChain = X509Chain()
 
-    #certList = X509Chain()
-    # print certList.loadChainFromString(self.request.get_ssl_certificate(True), GSI.crypto.FILETYPE_ASN1)
-    #print (certList.isProxy())
-    isProxyChain = False  # certList.isProxy()['Value']
-    isLimitedProxyChain = False  # peerChain.isLimitedProxy()['Value']
-    """if isProxyChain:
+    cert_chain = self.request.connection.stream.socket.get_peer_cert_chain()
+    for cert in cert_chain:
+      chainAsText += cert.as_pem()
+    peerChain.loadChainFromString(chainAsText)
+
+    isProxyChain = peerChain.isProxy()['Value']
+    isLimitedProxyChain = peerChain.isLimitedProxy()['Value']
+    if isProxyChain:
       if peerChain.isPUSP()['Value']:
-        identitySubject = peerChain.getSubjectNameObject()[ 'Value' ] #peerChain.getCertInChain( -2 )['Value'].getSubjectNameObject()[ 'Value' ]
+        identitySubject = peerChain.getCertInChain(-2)['Value'].getSubjectNameObject()['Value']
       else:
-        identitySubject = peerChain.getIssuerCert()['Value'].getSubjectNameObject()[ 'Value' ]
+        identitySubject = peerChain.getIssuerCert()['Value'].getSubjectNameObject()['Value']
     else:
-      identitySubject =  peerChain.getSubjectNameObject()[ 'Value' ]#peerChain.getCertInChain( 0 )['Value'].getSubjectNameObject()[ 'Value' ]
-    """
-    identitySubject = peerChain.getSubjectNameObject(
-    )['Value']  # peerChain.getCertInChain( 0 )['Value'].getSubjectNameObject()[ 'Value' ]
+      identitySubject = peerChain.getCertInChain(0)['Value'].getSubjectNameObject()['Value']
     credDict = {'DN': identitySubject.one_line(),
                 'CN': identitySubject.commonName,
                 'x509Chain': peerChain,
@@ -172,6 +165,7 @@ class TornadoService(RequestHandler):
     diracGroup = peerChain.getDIRACGroup()
     if diracGroup['OK'] and diracGroup['Value']:
       credDict['group'] = diracGroup['Value']
+
     return credDict
 
 ####
@@ -179,31 +173,30 @@ class TornadoService(RequestHandler):
 # Monitoring methods
 #
 ####
-  def __startReportToMonitoring( self ):
-    self._monitor.addMark( "Queries" )
+  def __startReportToMonitoring(self):
+    self._monitor.addMark("Queries")
     now = time.time()
     stats = os.times()
     cpuTime = stats[0] + stats[2]
     if now - self.stats["monitorLastStatsUpdate"] < 0:
-      return ( now, cpuTime )
+      return (now, cpuTime)
     # Send CPU consumption mark
     wallClock = now - self.__monitorLastStatsUpdate
     self.stats["monitorLastStatsUpdate"] = now
     # Send Memory consumption mark
-    membytes = MemStat.VmB( 'VmRSS:' )
+    membytes = MemStat.VmB('VmRSS:')
     if membytes:
-      mem = membytes / ( 1024. * 1024. )
-      self._monitor.addMark( 'MEM', mem )
-    return ( now, cpuTime )
+      mem = membytes / (1024. * 1024.)
+      self._monitor.addMark('MEM', mem)
+    return (now, cpuTime)
 
-  def __endReportToMonitoring( self, initialWallTime, initialCPUTime ):
+  def __endReportToMonitoring(self, initialWallTime, initialCPUTime):
     wallTime = time.time() - initialWallTime
     stats = os.times()
     cpuTime = stats[0] + stats[2] - initialCPUTime
     percentage = cpuTime / wallTime * 100.
     if percentage > 0:
-      self._monitor.addMark( 'CPU', percentage )
-
+      self._monitor.addMark('CPU', percentage)
 
 
 ####
@@ -215,6 +208,7 @@ class TornadoService(RequestHandler):
 #  by "copy-paste" or just modify the imports
 #
 ####
+
   @classmethod
   def srv_getCSOption(cls, optionName, defaultValue=False):
     """

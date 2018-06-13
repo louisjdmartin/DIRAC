@@ -205,17 +205,11 @@ class TornadoClient(object):
 
   def __generateSSLContext(self):
     """#### TODO ####
-    # Generate context with correct certificates
+    # Generate context with correct certificates, not hardcoded certs !
     # Create SSLContext and load client/CA certificates"""
-    ssl_ctx = ssl.create_default_context()
-    ssl_ctx.load_cert_chain(os.path.join('/tmp/', "x509up_u0"))
-    #ssl_ctx.load_cert_chain(
-    #    os.path.join(
-    #        '/root/.globus/',
-    #        "usercert.pem"),
-    #    os.path.join(
-    #        '/root/.globus/',
-    #        "userkey.pem"))
+    cert_dir = '/root/dev/etc/grid-security/certs/'
+    ssl_ctx = ssl.create_default_context(cafile=os.path.join(cert_dir, "ca/ca.cert.pem"))
+    ssl_ctx.load_cert_chain('/tmp/tornado_m2crypto/tornado_m2crypto/test/certs/MrBoinc/proxy.pem')
     self.ssl_ctx = ssl_ctx
 
 
