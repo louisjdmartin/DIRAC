@@ -16,6 +16,8 @@ from tornado_m2crypto.m2netutil import m2_wrap_socket
 import tornado.netutil
 tornado.netutil.ssl_wrap_socket = m2_wrap_socket
 
+import tornado.httputil
+tornado.httputil.HTTPServerRequest.configure('tornado_m2crypto.m2httputil.M2HTTPServerRequest')
 import tornado.iostream
 tornado.iostream.SSLIOStream.configure('tornado_m2crypto.m2iostream.M2IOStream')
 

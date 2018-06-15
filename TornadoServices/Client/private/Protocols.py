@@ -1,3 +1,0 @@
-gProtocolList = ['https'] 
-
-gDefaultProtocol = 'https'

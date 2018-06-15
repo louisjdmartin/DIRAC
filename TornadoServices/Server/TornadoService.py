@@ -56,6 +56,7 @@ class TornadoService(RequestHandler):
     self.method = None
     self._monitor = monitor
     self.credDict = self.gatherPeerCredentials()
+    print self.credDict
     stats['requests'] += 1
     self._monitor.setComponentExtraParam('queries', stats['requests'])
     self.stats = stats
@@ -143,7 +144,7 @@ class TornadoService(RequestHandler):
     chainAsText = self.request.connection.stream.socket.get_peer_cert().as_pem()
     peerChain = X509Chain()
 
-    cert_chain = self.request.connection.stream.socket.get_peer_cert_chain()
+    cert_chain = self.request.get_ssl_certificate_chain()
     for cert in cert_chain:
       chainAsText += cert.as_pem()
     peerChain.loadChainFromString(chainAsText)
@@ -165,7 +166,11 @@ class TornadoService(RequestHandler):
     diracGroup = peerChain.getDIRACGroup()
     if diracGroup['OK'] and diracGroup['Value']:
       credDict['group'] = diracGroup['Value']
-
+    try:
+      extraCred = decode(self.request.get_argument("extraCredentials"))[0]
+      credDict['extraCredentials'] = extraCred
+    except Exception:
+      pass
     return credDict
 
 ####

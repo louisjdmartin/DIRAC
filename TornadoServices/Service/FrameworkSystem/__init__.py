@@ -1,3 +1,0 @@
-"""
-DIRAC.TornadosServices.Services.FrameworkSystem
-"""
