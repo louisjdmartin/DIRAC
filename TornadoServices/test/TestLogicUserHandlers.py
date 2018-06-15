@@ -2,8 +2,32 @@
     Test if same service work on DIRAC and TORNADO
     Testing if basic operation works on a dummy example
     
-    
-    WARNING: It's an integration test, services must be started before running this test
+    It's just normal services, entry in dirac.cfg are the same as usual.
+    To start tornado use DIRAC/TornadoServices/scripts/tornado-start-all.py
+    ```
+    Services
+      {
+        User
+        {
+          # It can be empty, use port 443 (HTTPS)
+        }
+        UserDirac
+        {
+          Port = 3424
+          DisableMonitoring = yes
+          #HandlerPath = DIRAC/TornadoServices/Service/UserHandler.py
+        }
+      }
+    ```
+
+    ```
+    URLs
+      {
+        User = https://MrBoincHost:443/Framework/User
+        UserDirac = dips://localhost:3424/Framework/UserDirac
+      }
+    ```
+
 """
 
 

@@ -2,15 +2,17 @@
     TornadoBaseClient contain all low-levels functionnalities and initilization methods
     It must be instanciated from a child class like TornadoClient
 
-    Requests library manage himself retry when connection failed, so the number of "retry" in this class is equal
-    to the number of URL. (For each URL requests manage retry himself, if it still fail, we try next url)
-    KeepAlive lapse is also removed because managed by request, see http://docs.python-requests.org/en/master/user/advanced/#keep-alive
+    Requests library manage himself retry when connection failed, so the __nbOfRetry attribute is removed from DIRAC
+    (For each URL requests manage retries himself, if it still fail, we try next url)
+    KeepAlive lapse is also removed because managed by request,
+    see http://docs.python-requests.org/en/master/user/advanced/#keep-alive
 
-    If necessary this class can be modified to define number of retry in requestspytest, documentation does not give lot of informations
-    but you can see this simple solution from StackOverflow. After some tests request seems to retry 3 times.
+    If necessary this class can be modified to define number of retry in requests, documentation does not give
+    lot of informations but you can see this simple solution from StackOverflow.
+    After some tests request seems to retry 3 times by default.
     https://stackoverflow.com/questions/15431044/can-i-set-max-retries-for-requests-request
 
-    WARNING: If you use your own certificates please take a look at
+    WARNING: If you use your own certificates, it's like in dips, please take a look at
     https://dirac.readthedocs.io/en/latest/AdministratorGuide/InstallingDIRACService/index.html#using-your-own-ca
 
 
@@ -31,7 +33,6 @@ class TornadoBaseClient(object):
   """
     This class contain initialization method and all utilities method used for RPC
   """
-
 
   VAL_EXTRA_CREDENTIALS_HOST = "hosts"
 
@@ -87,7 +88,7 @@ class TornadoBaseClient(object):
     # by default we always have 1 url for example:
     # RPCClient('dips://volhcb38.cern.ch:9162/Framework/SystemAdministrator')
     self.__nbOfUrls = 1
-    #self.__nbOfRetry removed in https, see note at the begining of the class
+    # self.__nbOfRetry removed in https, see note at the begining of the class
     self.__retryCounter = 1
     self.__bannedUrls = []
     for initFunc in (
@@ -97,9 +98,7 @@ class TornadoBaseClient(object):
         self.__discoverCredentialsToUse,
         self.__discoverExtraCredentials,
         self.__discoverURL):
-      """
-        self.__setKeepAliveLapse
-      """
+
       result = initFunc()
       if not result['OK'] and self.__initStatus['OK']:
         self.__initStatus = result
@@ -173,10 +172,10 @@ class TornadoBaseClient(object):
     """ Discovers which credentials to use for connection.
         * Server certificate:
           -> If KW_USE_CERTIFICATES in kwargs, sets it in self.__useCertificates
-          -> If not, check gConfig.useServerCertificate(), and sets it in self.__useCertificates 
+          -> If not, check gConfig.useServerCertificate(), and sets it in self.__useCertificates
               and kwargs[KW_USE_CERTIFICATES]
         * Certification Authorities check:
-           -> if KW_SKIP_CA_CHECK is not in kwargs and we are using the certificates, 
+           -> if KW_SKIP_CA_CHECK is not in kwargs and we are using the certificates,
                 set KW_SKIP_CA_CHECK to false in kwargs
            -> if KW_SKIP_CA_CHECK is not in kwargs and we are not using the certificate, check the CS.skipCACheck
         * Proxy Chain
@@ -205,7 +204,7 @@ class TornadoBaseClient(object):
     ##### REWRITED FROM HERE #####
 
     # Getting proxy
-    
+
     proxy = Locations.getProxyLocation()
     if not proxy:
       gLogger.error("No proxy found")
@@ -248,11 +247,11 @@ class TornadoBaseClient(object):
     if self.KW_DELEGATED_DN in self.kwargs and self.kwargs[self.KW_DELEGATED_DN]:
       delegatedDN = self.kwargs[self.KW_DELEGATED_DN]
     else:
-      delegatedDN=False
+      delegatedDN = False
     if self.KW_DELEGATED_GROUP in self.kwargs and self.kwargs[self.KW_DELEGATED_GROUP]:
       delegatedGroup = self.kwargs[self.KW_DELEGATED_GROUP]
     else:
-      delegatedGroup=False
+      delegatedGroup = False
     if delegatedDN:
       if not delegatedGroup:
         result = CS.findDefaultGroupForDN(self.kwargs[self.KW_DELEGATED_DN])
@@ -355,7 +354,7 @@ class TornadoBaseClient(object):
     # We randomize the list, and add at the end the failover URLs (System/FailoverURLs/Component)
     urlsList = List.randomize(List.fromChar(urls, ",")) + failoverUrls
     self.__nbOfUrls = len(urlsList)
-    ## __nbOfRetry removed in HTTPS (managed by requests)
+    # __nbOfRetry removed in HTTPS (managed by requests)
     if self.__nbOfUrls == len(self.__bannedUrls):
       self.__bannedUrls = []  # retry all urls
       gLogger.debug("Retrying again all URLs")
@@ -470,13 +469,13 @@ class TornadoBaseClient(object):
       cert = self.__proxy_location
 
     print "==================================================="
-    print "Certificat client: \t%s\nCA: \t\t\t%s"%(cert, verify)
+    print "Certificat client: \t%s\nCA: \t\t\t%s" % (cert, verify)
     print "==================================================="
     print postArguments
     # Do the request
     try:
       call = requests.post(url, data=postArguments, timeout=self.timeout, verify=verify,
-                        cert=cert)
+                           cert=cert)
       return decode(call.text)[0]
     except Exception as e:
       if url not in self.__bannedUrls:

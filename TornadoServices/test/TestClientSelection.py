@@ -1,4 +1,19 @@
+"""
+    Unit test on client selection:
+        - By default: RPCClient should be used
+        - If we use Tornado service TornadoClient is used
 
+    Should work with
+        - 'Component/Service'
+        - URL
+        - List of URL
+
+    Mock Config:
+        - Service using HTTPS with Tornado
+        - Service using Diset
+
+    You don't need to setup anything, just run ``pytest TestClientSelection.py`` !
+"""
 import os
 import re
 
@@ -17,20 +32,6 @@ from DIRAC.Core.DISET.private.InnerRPCClient import InnerRPCClient
 
 parametrize = mark.parametrize
 
-"""
-    Unit test on client selection:
-        - By default: RPCClient should be used
-        - If we use Tornado service TornadoClient is used
-
-    Should work with
-        - 'Component/Service'
-        - URL
-        - List of URL
-
-    Mock Config:
-        - Service using HTTPS with Tornado
-        - Service using Diset
-"""
 
 testCfgFileName = 'test.cfg'
 

@@ -1,8 +1,40 @@
 """
-    In this test we want to check if Tornado generate the same credentials dictionnary of DIRAC.
+    In this test we want to check if Tornado generate the same credentials dictionnary as DIRAC.
     It also test if the correct certificates are sended by client. 
 
-    To run this test you must have the handlers who returns credentials dictionnary
+    To run this test you must have the handlers who returns credentials dictionnary.
+    Handlers are diracCredDictHandler and tornadoCredDictHandler just returns these dictionnary 
+    and are stored in DIRAC/FrameworkSystem/Service
+  
+    Then you have to start tornado using script tornado-start-all.py in DIRAC/TornadoServices/scripts 
+    before running test
+
+    In configuration it have to be set as normal services, it will look like:
+
+    ```
+    # In Systems/Service/<instance>/Framework
+     Services
+      {
+        tornadoCredDict
+        {
+          # it can be empty, port is 443 (https) and no settings are required, but must be present
+        }
+        diracCredDict
+        {
+          Port = 3444
+          DisableMonitoring = yes
+        }
+      }
+    ```
+
+    ```
+    URLs
+      {
+        tornadoCredDict = https://localhost:443/Framework/tornadoCredDict
+        diracCredDict = dips://MrBoincHost:3444/Framework/diracCredDict
+      }
+    ```
+  
 """
 
 import pytest

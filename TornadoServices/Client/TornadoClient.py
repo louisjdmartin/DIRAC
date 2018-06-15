@@ -1,16 +1,20 @@
-import os
-import ssl
-import httplib
-import urllib
-import requests
-import urlparse
-import time
+"""
+  TornadoClient is equivalent of RPCClient in HTTPS.
+  Usage of TornadoClient is the same as RPCClient, you can instanciate TornadoClient with
+  complete url (https://domain/component/service) or just "component/service".
 
-import DIRAC
-from DIRAC import S_OK, gLogger
-from DIRAC.Core.Utilities.JEncode import encode, decode
+  Main changes:
+    - KeepAliveLapse is removed, requests library manage it himself.
+    - nbOfRetry (defined as private attribute) is remove, requests library manage it himself.
+    - Underneath it use HTTP POST protocol and JSON
+
+  Changes to discuss:
+    - Remove the CallStack returned by server when server send S_ERROR after failed authentication
+       (or at least make it configurable, so it can be accessible in dev/debug but not in production for example)
+"""
+
+from DIRAC.Core.Utilities.JEncode import encode
 from DIRAC.TornadoServices.Client.private.TornadoBaseClient import TornadoBaseClient
-
 
 
 class TornadoClient(TornadoBaseClient):
@@ -19,8 +23,6 @@ class TornadoClient(TornadoBaseClient):
     Interface is based on RPCClient interface
   """
 
-
-
   def __getattr__(self, attrname):
     """
       Return the RPC call procedure
@@ -28,6 +30,9 @@ class TornadoClient(TornadoBaseClient):
       :return: RPC procedure
     """
     def call(*args):
+      """
+        Just returns the right function for RPC Call
+      """
       return self.executeRPC(attrname, *args)
     return call
 
@@ -43,8 +48,6 @@ class TornadoClient(TornadoBaseClient):
     retVal = self._request(rpcCall)
     retVal['rpcStub'] = (self._getBaseStub(), method, args)
     return retVal
-
-  
 
 
 # NOTE pour utilisation requests
