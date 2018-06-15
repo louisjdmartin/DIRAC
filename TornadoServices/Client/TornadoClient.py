@@ -41,6 +41,7 @@ class TornadoClient(TornadoBaseClient):
     rpcCall = {'method': method, 'args': encode(args)}
     # Start request
     retVal = self._request(rpcCall)
+    retVal['rpcStub'] = (self._getBaseStub(), method, args)
     return retVal
 
   

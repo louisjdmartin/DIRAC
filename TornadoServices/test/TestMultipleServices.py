@@ -1,5 +1,9 @@
 """
-    Integratopm test to test if Tornado can run multiple services
+    Integration test to test if Tornado can run multiple services and client can find url.
+
+
+    You must have 2 separate tornadohandlers and this services must be in dirac.cfg like normal service
+    Only change: dips:// become https://
 """
 
 
@@ -9,8 +13,8 @@ from DIRAC.TornadoServices.Client.TornadoClient import TornadoClient
 
 def test_service_user():
   service = TornadoClient('Framework/User')
-  assert service.listUsers()['OK'] == True
+  assert service.ping()['OK'] == True
 
 def test_service_dummy():
   service = TornadoClient('Framework/DummyTornado')
-  assert service.true()['OK'] == True
+  assert service.ping()['OK'] == True

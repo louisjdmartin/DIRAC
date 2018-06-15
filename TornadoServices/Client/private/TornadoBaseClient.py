@@ -2,29 +2,36 @@
     TornadoBaseClient contain all low-levels functionnalities and initilization methods
     It must be instanciated from a child class like TornadoClient
 
+    Requests library manage himself retry when connection failed, so the number of "retry" in this class is equal
+    to the number of URL. (For each URL requests manage retry himself, if it still fail, we try next url)
+    KeepAlive lapse is also removed because managed by request, see http://docs.python-requests.org/en/master/user/advanced/#keep-alive
+
+    If necessary this class can be modified to define number of retry in requestspytest, documentation does not give lot of informations
+    but you can see this simple solution from StackOverflow. After some tests request seems to retry 3 times.
+    https://stackoverflow.com/questions/15431044/can-i-set-max-retries-for-requests-request
+
     WARNING: If you use your own certificates please take a look at
     https://dirac.readthedocs.io/en/latest/AdministratorGuide/InstallingDIRACService/index.html#using-your-own-ca
-    
+
 
 """
-import os
-import ssl
-import httplib
-import urllib
 import requests
-import urlparse
 import DIRAC
 
 from DIRAC.ConfigurationSystem.Client.Config import gConfig
 from DIRAC.Core.Utilities import List, Network
 from DIRAC import S_OK, S_ERROR, gLogger
-from DIRAC.ConfigurationSystem.Client.PathFinder import divideFullName, getSystemSection, getServiceURL
+from DIRAC.ConfigurationSystem.Client.PathFinder import getServiceURL, getServiceFailoverURL
 from DIRAC.Core.Utilities.JEncode import decode, encode
 from DIRAC.Core.Security import CS
 from DIRAC.Core.Security import Locations
 
 
 class TornadoBaseClient(object):
+  """
+    This class contain initialization method and all utilities method used for RPC
+  """
+
 
   VAL_EXTRA_CREDENTIALS_HOST = "hosts"
 
@@ -36,11 +43,9 @@ class TornadoBaseClient(object):
   KW_DELEGATED_DN = "delegatedDN"
   KW_DELEGATED_GROUP = "delegatedGroup"
   KW_IGNORE_GATEWAYS = "ignoreGateways"
-  KW_PROXY_LOCATION = "proxyLocation"
   KW_PROXY_STRING = "proxyString"
   KW_PROXY_CHAIN = "proxyChain"
   KW_SKIP_CA_CHECK = "skipCACheck"
-  KW_CA_FILE_LOCATION = "CALocation"
   KW_KEEP_ALIVE_LAPSE = "keepAliveLapse"
 
   def __init__(self, serviceName, **kwargs):
@@ -65,10 +70,10 @@ class TornadoBaseClient(object):
       raise TypeError("Service name expected to be a string. Received %s type %s" %
                       (str(serviceName), type(serviceName)))
 
-
     # TODO: redefine and use this
     self._destinationSrv = serviceName
     self._serviceName = serviceName
+    self.__ca_location = False
 
     self.kwargs = kwargs
     self.__useCertificates = None
@@ -82,10 +87,16 @@ class TornadoBaseClient(object):
     # by default we always have 1 url for example:
     # RPCClient('dips://volhcb38.cern.ch:9162/Framework/SystemAdministrator')
     self.__nbOfUrls = 1
-    self.__nbOfRetry = 3  # by default we try try times
+    #self.__nbOfRetry removed in https, see note at the begining of the class
     self.__retryCounter = 1
     self.__bannedUrls = []
-    for initFunc in (self.__discoverTimeout, self.__discoverSetup, self.__discoverVO, self.__discoverCredentialsToUse, self.__discoverURL):
+    for initFunc in (
+        self.__discoverTimeout,
+        self.__discoverSetup,
+        self.__discoverVO,
+        self.__discoverCredentialsToUse,
+        self.__discoverExtraCredentials,
+        self.__discoverURL):
       """
         self.__setKeepAliveLapse
       """
@@ -149,6 +160,8 @@ class TornadoBaseClient(object):
            * default to 'unknown'
 
         WARNING: COPY/PASTE FROM Core/Diset/private/BaseClient FOR NOW
+        Used in propose action, but not reused
+        # TODO: See how it's sended and why
     """
     if self.KW_VO in self.kwargs and self.kwargs[self.KW_VO]:
       self.vo = str(self.kwargs[self.KW_VO])
@@ -160,9 +173,11 @@ class TornadoBaseClient(object):
     """ Discovers which credentials to use for connection.
         * Server certificate:
           -> If KW_USE_CERTIFICATES in kwargs, sets it in self.__useCertificates
-          ->If not, check gConfig.useServerCertificate(), and sets it in self.__useCertificates and kwargs[KW_USE_CERTIFICATES]
+          -> If not, check gConfig.useServerCertificate(), and sets it in self.__useCertificates 
+              and kwargs[KW_USE_CERTIFICATES]
         * Certification Authorities check:
-           -> if KW_SKIP_CA_CHECK is not in kwargs and we are using the certificates, set KW_SKIP_CA_CHECK to false in kwargs
+           -> if KW_SKIP_CA_CHECK is not in kwargs and we are using the certificates, 
+                set KW_SKIP_CA_CHECK to false in kwargs
            -> if KW_SKIP_CA_CHECK is not in kwargs and we are not using the certificate, check the CS.skipCACheck
         * Proxy Chain
 
@@ -187,18 +202,15 @@ class TornadoBaseClient(object):
       except BaseException:
         return S_ERROR("Invalid proxy chain specified on instantiation")
 
-
     ##### REWRITED FROM HERE #####
-  
+
     # Getting proxy
-    if self.KW_PROXY_LOCATION in self.kwargs:
-      certFile = kwargs[KW_PROXY_LOCATION]
-    else:
-      certFile = Locations.getProxyLocation()
-    if not certFile:
+    
+    proxy = Locations.getProxyLocation()
+    if not proxy:
       gLogger.error("No proxy found")
       return S_ERROR("No proxy found")
-    self.kwargs[self.KW_PROXY_LOCATION] = certFile
+    self.__proxy_location = proxy
 
     # For certs always check CA's. For clients skipServerIdentityCheck
     if self.KW_SKIP_CA_CHECK not in self.kwargs or not self.kwargs[self.KW_SKIP_CA_CHECK]:
@@ -207,11 +219,9 @@ class TornadoBaseClient(object):
         gLogger.error("No CAs found!")
         return S_ERROR("No CAs found!")
       else:
-        self.kwargs[self.KW_CA_FILE_LOCATION] = cafile
+        self.__ca_location = cafile
 
     return S_OK()
-
-
 
   def __discoverExtraCredentials(self):
     """ Add extra credentials informations.
@@ -222,9 +232,10 @@ class TornadoBaseClient(object):
           -> otherwise it is an empty string
         * delegation:
           -> if KW_DELEGATED_DN in kwargs, or delegatedDN in threadConfig, put in in self.kwargs
-          -> if KW_DELEGATED_GROUP in kwargs or delegatedGroup in threadConfig, put it in self.kwargs
           -> If we have a delegated DN but not group, we find the corresponding group in the CS
 
+    WARNING: (mostly) COPY/PASTE FROM Core/Diset/private/BaseClient
+    -> Interactions with thread removed
     """
     # Wich extra credentials to use?
     if self.__useCertificates:
@@ -236,21 +247,21 @@ class TornadoBaseClient(object):
     # Are we delegating something?
     if self.KW_DELEGATED_DN in self.kwargs and self.kwargs[self.KW_DELEGATED_DN]:
       delegatedDN = self.kwargs[self.KW_DELEGATED_DN]
-    elif delegatedDN:
-      self.kwargs[self.KW_DELEGATED_DN] = delegatedDN
+    else:
+      delegatedDN=False
     if self.KW_DELEGATED_GROUP in self.kwargs and self.kwargs[self.KW_DELEGATED_GROUP]:
       delegatedGroup = self.kwargs[self.KW_DELEGATED_GROUP]
-    elif delegatedGroup:
-      self.kwargs[self.KW_DELEGATED_GROUP] = delegatedGroup
+    else:
+      delegatedGroup=False
     if delegatedDN:
       if not delegatedGroup:
         result = CS.findDefaultGroupForDN(self.kwargs[self.KW_DELEGATED_DN])
         if not result['OK']:
           return result
       self.__extraCredentials = (delegatedDN, delegatedGroup)
+
+      print self.__extraCredentials
     return S_OK()
-
-
 
   def __discoverTimeout(self):
     """ Discover which timeout to use and stores it in self.timeout
@@ -259,7 +270,7 @@ class TornadoBaseClient(object):
         If unspecified, the timeout will be 600 seconds.
         The value is set in self.timeout, as well as in self.kwargs[KW_TIMEOUT]
 
-        WARNING: COPY/PASTE FROM Core/Diset/private/BaseClient FOR NOW
+        WARNING: COPY/PASTE FROM Core/Diset/private/BaseClient
     """
     if self.KW_TIMEOUT in self.kwargs:
       self.timeout = self.kwargs[self.KW_TIMEOUT]
@@ -288,13 +299,13 @@ class TornadoBaseClient(object):
 
         This method also sets some attributes:
           * self.__nbOfUrls = number of URLs
-          * self.__nbOfRetry = 2 if we have more than 2 urls, otherwise 3
+          * self.__nbOfRetry removed in HTTPS (Managed by requests)
           * self.__bannedUrls is reinitialized if all the URLs are banned
 
         :return: the selected URL
 
         WARNING (Mostly) COPY PASTE FROM BaseClient (protocols list is changed to https)
-  
+
     """
     if not self.__initStatus['OK']:
       return self.__initStatus
@@ -324,8 +335,6 @@ class TornadoBaseClient(object):
       gLogger.debug("Using gateway", gatewayURL)
       return S_OK("%s/%s" % (gatewayURL, self._destinationSrv))
 
-
-
     # If nor url is given as constructor, we extract the list of URLs from the CS (System/URLs/Component)
     try:
       urls = getServiceURL(self._destinationSrv, setup=self.setup)
@@ -346,7 +355,7 @@ class TornadoBaseClient(object):
     # We randomize the list, and add at the end the failover URLs (System/FailoverURLs/Component)
     urlsList = List.randomize(List.fromChar(urls, ",")) + failoverUrls
     self.__nbOfUrls = len(urlsList)
-    self.__nbOfRetry = 2 if self.__nbOfUrls > 2 else 3  # we retry 2 times all services, if we run more than 2 services
+    ## __nbOfRetry removed in HTTPS (managed by requests)
     if self.__nbOfUrls == len(self.__bannedUrls):
       self.__bannedUrls = []  # retry all urls
       gLogger.debug("Retrying again all URLs")
@@ -366,7 +375,7 @@ class TornadoBaseClient(object):
     # If we have banned URLs, and several URLs at disposals, we make sure that the selected sURL
     # is not on a host which is banned. If it is, we take the next one in the list using __selectUrl
 
-    if len(self.__bannedUrls) > 0 and self.__nbOfUrls > 2:  
+    if len(self.__bannedUrls) > 0 and self.__nbOfUrls > 2:
       retVal = Network.splitURL(sURL)
       nexturl = None
       if retVal['OK']:
@@ -390,7 +399,6 @@ class TornadoBaseClient(object):
     gLogger.debug("Discovering URL for service", "%s -> %s" % (self._destinationSrv, sURL))
     return S_OK(sURL)
 
-
   def __selectUrl(self, notselect, urls):
     """In case when multiple services are running in the same host, a new url has to be in a different host
     Note: If we do not have different host we will use the selected url...
@@ -399,6 +407,8 @@ class TornadoBaseClient(object):
     :param urls: list of potential URLs
 
     :return: selected URL
+
+    WARNING: COPY/PASTE FROM Core/Diset/private/BaseClient
     """
     url = None
     for i in urls:
@@ -411,106 +421,71 @@ class TornadoBaseClient(object):
           gLogger.error(retVal['Message'])
     return url
 
-
-
-
-  # def __generateSSLContext(self):
-  #   """#### TODO ####
-  #   # Generate context with correct certificates, not hardcoded certs !
-  #   # Create SSLContext and load client/CA certificates"""
-
-  #   # HACK FOR Compatibility
-  #   from requests.adapters import HTTPAdapter
-  #   from requests.packages.urllib3.util.ssl_ import create_urllib3_context
-
-  #   # This is the 2.11 Requests cipher string.
-  #   CIPHERS = (
-  #       'ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+HIGH:'
-  #       'DH+HIGH:ECDH+3DES:DH+3DES:RSA+AESGCM:RSA+AES:RSA+HIGH:RSA+3DES:!aNULL:'
-  #       '!eNULL:!MD5'
-  #   )
-  #   cert_dir = '/root/dev/etc/grid-security/certs/'
-
-  #   class DESAdapter(HTTPAdapter):
-  #     def init_poolmanager(self, *args, **kwargs):
-  #       context = create_urllib3_context(ciphers=CIPHERS)
-  #       context.load_verify_locations(cafile=os.path.join(cert_dir, "ca/ca.cert.pem"))
-  #       context.load_cert_chain(os.path.join(cert_dir, "MrBoinc/proxy.pem"))
-
-  #       kwargs['ssl_context'] = context
-  #       return super(DESAdapter, self).init_poolmanager(*args, **kwargs)
-  #   self.adapter = DESAdapter
-  #   self.session = requests.Session()
-
   def getServiceName(self):
     return self._serviceName
 
   def getDestinationService(self):
     return getServiceURL(self._serviceName)
 
-  #def _connect(self):
-    #### TODO ####
-    # _connect like BaseClient._connect
-    # /Core/DISET/private/BaseClient
-    # url = self.__findServiceURL()
-    # if not url['OK']:
-    #   return url
+  def _getBaseStub(self):
+    """ Returns a tuple with (self._destinationSrv, newKwargs)
+        self._destinationSrv is what was given as first parameter of the init serviceName
 
-    # url_parsed = urlparse.urlparse(url['Value'])
-    # path = url_parsed.path
-    # hostname = url_parsed.hostname
-    # port = url_parsed.port
-    # self.connection = httplib.HTTPSConnection(
-    #     hostname,
-    #     port=port,
-    #     context=self.ssl_ctx,
-    #     timeout=self.timeout
-    # )
-    # self.connection.connect()
+        newKwargs is an updated copy of kwargs:
+          * if set, we remove the useCertificates (KW_USE_CERTIFICATES) in newKwargs
 
-    
+        This method is just used to return information in case of error in the InnerRPCClient
 
-    # url_parsed = urlparse.urlparse(url['Value'])
-    # self.session.mount('https://%s:%s' % (url_parsed.hostname, url_parsed.port), self.adapter())
-
-    #return S_OK()
-
-  # def _disconnect(self):
-  #   # self.connection.close()
-  #   # Closed and forgotten at each time because url can change
-  #   #self.connection = None
-  #   return S_OK()
+        WARNING: COPY/PASTE FROM Core/Diset/private/BaseClient
+    """
+    newKwargs = dict(self.kwargs)
+    # Remove useCertificates as the forwarder of the call will have to
+    # independently decide whether to use their cert or not anyway.
+    if 'useCertificates' in newKwargs:
+      del newKwargs['useCertificates']
+    return (self._destinationSrv, newKwargs)
 
   def _request(self, postArguments, retry=0):
-    print self.kwargs
 
-    postArguments[self.KW_EXTRA_CREDENTIALS] = encode(self.__extraCredentials)
+    # Adding some informations to send
+    if self.__extraCredentials:
+      postArguments[self.KW_EXTRA_CREDENTIALS] = encode(self.__extraCredentials)
+    postArguments["clientVO"] = self.vo
 
-    #Getting URL
+    # Getting URL
     url = self.__findServiceURL()
     if not url['OK']:
       return url
     url = url['Value']
 
-    #Getting CA file (or skip verification)
+    # Getting CA file (or skip verification)
     verify = (not self.kwargs[self.KW_SKIP_CA_CHECK])
-    if verify and self.KW_CA_FILE_LOCATION in self.kwargs:
-      verify = self.kwargs[self.KW_CA_FILE_LOCATION]
+    if verify and self.__ca_location:
+      verify = self.__ca_location
 
     # getting certificate
-    if(self.kwargs[self.KW_USE_CERTIFICATES]):
+    if self.kwargs[self.KW_USE_CERTIFICATES]:
       cert = Locations.getHostCertificateAndKeyLocation()
     else:
-      cert = self.kwargs[self.KW_PROXY_LOCATION]
-    print cert
-    #Do the request
+      cert = self.__proxy_location
+
+    print "==================================================="
+    print "Certificat client: \t%s\nCA: \t\t\t%s"%(cert, verify)
+    print "==================================================="
+    print postArguments
+    # Do the request
     try:
-      r = requests.post(url, data=postArguments, timeout=self.timeout, verify=verify,
+      call = requests.post(url, data=postArguments, timeout=self.timeout, verify=verify,
                         cert=cert)
-      return decode(r.text)[0]
+      return decode(call.text)[0]
     except Exception as e:
       if url not in self.__bannedUrls:
         self.__bannedUrls += [url]
-      if retry <  self.__nbOfRetry * self.__nbOfUrls - 1:
-        self._request(postArguments, retry+1)
+      if retry < self.__nbOfUrls - 1:
+        self._request(postArguments, retry + 1)
       return S_ERROR(e)
+
+#### TODO ####
+# Rewrite this method:
+#  /Core/DISET/private/BaseClient.py
+# __delegateCredentials

@@ -25,7 +25,7 @@ rpc_imp = ((RPCClientTornado, 'Framework/User'), (RPCClientDIRAC, 'Framework/Use
 @parametrize('rpc', rpc_imp)
 @given(s=text(printable, max_size=64), s2=text(printable, max_size=64))
 @settings(deadline=None, max_examples=4)
-def test_insert_get_service(rpc, s, s2):
+def test_basic_logic(rpc, s, s2):
   service = rpc[0](rpc[1])
 
   # Create a user

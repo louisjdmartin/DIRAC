@@ -1,0 +1,5 @@
+Apres generation des certificats => hostname ne matchent pas (localhost != dirac.dev)
+==> Ajout du hostname au /etc/hosts
+
+Certificats serveurs doivent avoir un alternative name pour eviter les warning et le role de client quand on l'utilise dans le client
+

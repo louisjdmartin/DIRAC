@@ -1,0 +1,2 @@
+0.000383853912354 show tables
+0.000252962112427 SELECT * FROM `user_mytable`   WHERE `Id` = "1132"

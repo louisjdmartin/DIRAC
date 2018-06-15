@@ -56,7 +56,6 @@ class TornadoService(RequestHandler):
     self.method = None
     self._monitor = monitor
     self.credDict = self.gatherPeerCredentials()
-    print self.credDict
     stats['requests'] += 1
     self._monitor.setComponentExtraParam('queries', stats['requests'])
     self.stats = stats
@@ -78,6 +77,9 @@ class TornadoService(RequestHandler):
       hardcodedAuth = getattr(self, 'auth_' + self.method)
     except AttributeError:
       hardcodedAuth = None
+
+    print self.credDict
+    print self.method 
     self.authorized = self.authManager.authQuery(self.method, self.credDict, hardcodedAuth)
 
   def post(self):
@@ -86,12 +88,12 @@ class TornadoService(RequestHandler):
       Call the remote method, client may send his method via "method" argument
       and list of arguments in JSON in "args" argument
     """
-
+    
     if self.authorized:
       self.__execute_RPC()
 
     else:
-      error = S_ERROR("You're not authorized to do that.")
+      error = S_ERROR("Unauthorized query")
       gLogger.warn(
           "Unauthorized access to %s: %s(%s) from %s" %
           (self.request.path,
@@ -167,10 +169,12 @@ class TornadoService(RequestHandler):
     if diracGroup['OK'] and diracGroup['Value']:
       credDict['group'] = diracGroup['Value']
     try:
-      extraCred = decode(self.request.get_argument("extraCredentials"))[0]
-      credDict['extraCredentials'] = extraCred
-    except Exception:
-      pass
+      extraCred = self.get_argument("extraCredentials")
+      print extraCred
+      if extraCred:
+        credDict['extraCredentials'] = decode(extraCred)[0]
+    except Exception as e:
+      print e
     return credDict
 
 ####

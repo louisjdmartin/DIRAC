@@ -83,12 +83,12 @@ class TornadoServer(object):
     #   'ca_certs': os.path.join(cert_dir, "hostcert.pem"),
     #   'sslDebug' : True
     # }
-    cert_dir = '/root/dev/etc/grid-security/certs/'
+    cert_dir = '/root/dev/etc/grid-security/'
     SSL_OPTS = {
-        'certfile': os.path.join(cert_dir, "MrBoincHost/hostcert.pem"),
-        'keyfile': os.path.join(cert_dir, "MrBoincHost/hostkey.pem"),
+        'certfile': os.path.join(cert_dir, "hostcert.pem"),
+        'keyfile': os.path.join(cert_dir, "hostkey.pem"),
         'cert_reqs': M2Crypto.SSL.verify_peer,
-        'ca_certs': os.path.join(cert_dir, "ca/ca.cert.pem"),
+        'ca_certs': os.path.join(cert_dir, "certs/ca/ca.cert.pem"),
         #'ca_certs': '/tmp/tornado_m2crypto/tornado_m2crypto/test/certs/allCAs.pem',
         #'sslDebug' : True
     }
