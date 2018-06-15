@@ -1,3 +1,58 @@
+[v6r20p3]
+
+*Framework
+FIX: SystemAdministrator - Get the correct cpu usage data for each component
+
+*TS
+NEW: new command dirac-transformation-replication to create replication transformation to copy files from some SEs to other SEs, resolves #3700
+
+*RMS
+FIX: fix integration tests to work with privileged and non privileged proxies
+
+*RSS
+FIX: Fix for downtime publisher: wrong column names. Avoiding dates (not reflected in web app)
+
+[v6r20p2]
+
+*Core
+
+CHANGE: (#3713) Fixes the infamous "invalid action proposal" by speeding up the handshake and not looking up the user/group in the baseStub
+
+*RequestManagementSystem
+CHANGE: (#3713) FowardDISET uses the owner/group of Request to execute the stub
+CHANGE: (#3713) owner/group of the Requests are evaluated/authorized on the server side
+CHANGE: (#3713) LimitedDelegation or FullDelegation are required to set requests on behalf of others -> pilot user and hosts should must them (which should already be the case)
+
+*docs
+
+NEW: (#3699) documentation on Workflow
+CHANGE: (#3699) update on documentation for integration tests
+
+*ConfigurationSystem
+
+CHANGE: (#3699) for pilotCS2JSONSynchronizer: if pilotFileServer is not set, still print out the content
+
+*WorkloadManagementSystem
+
+CHANGE: (#3693) introduce options for sites to choose usage of Singularity
+
+*TransformationSystem
+
+FIX: (#3706) TaskManger with bulksubmission might have occasional exception, depending on order of entries in a dictionary
+FIX: (#3709) TaskManager - fix the generated JobName to be of the form ProdID_TaskID
+FIX: (#3709) TaskManager - check the JOB_ID and PRODUCTION_ID parameters are defined in the workflow
+
+*Interfaces
+
+FIX: (#3709) Job API - do not merge workflow non-JDL parameters with the sequence parameters of the same name
+
+[v6r20p1]
+
+*WorkloadManagementSystem
+
+FIX: (#3697) Ensure retrieveTaskQueues doesn't return anything when given an empty list of TQ IDs.
+FIX: (#3698) Call optimizer fast-path for non-bulk jobs
+
 [v6r20]
 
 *Core
@@ -105,6 +160,25 @@ FIX: Update of the FTS3 docs
 *Tests
 FIX: add MonitoringDB to the configuration
 FIX: Installing elasticSeach locally in Jenkins, with ComponentInstaller support.
+
+[v6r19p22]
+
+*Core
+CHANGE: Backport from v6r20 - fixes the infamous "invalid action proposal" by speeding up 
+        the handshake and not looking up the user/group in the baseStub
+
+RMS:
+CHANGE: Backport from v6r20 - FowardDISET uses the owner/group of Request to execute the stub
+CHANGE: Backport from v6r20 - owner/group of the Requests are evaluated/authorized on the server side
+CHANGE: Backport from v6r20 - LimitedDelegation or FullDelegation are required to set requests on behalf 
+        of others -> pilot user and hosts should must them (which should already be the case)
+
+*API
+NEW: Dirac.py - running jobs locally now also works for parametric jobs. Only the first sequence will be run
+FIX: Dirac.py - running jobs locally will now properly work with LFNs in the inputSanbdox
+
+*DMS
+FIX: DMSHelpers - in getLocalSiteForSE() return None as LocalSite if an SE is at no site
 
 [v6r19p21]
 
