@@ -122,7 +122,7 @@ class TornadoService(RequestHandler):
       method = getattr(self, 'export_' + self.method)
       retVal = method(*args)
       self.write(encode(retVal))
-    except Exception as e:
+    except Exception as e: #TODO: use something more precise than "Exception"
       # If we try to ping server, can be redifined be defining a export_ping method
       if(self.method == 'ping'):
         self.write(encode(S_OK('pong')))
@@ -168,13 +168,11 @@ class TornadoService(RequestHandler):
     diracGroup = peerChain.getDIRACGroup()
     if diracGroup['OK'] and diracGroup['Value']:
       credDict['group'] = diracGroup['Value']
-    try:
+    if "extraCredentials" in self.request.arguments:
       extraCred = self.get_argument("extraCredentials")
       print extraCred
       if extraCred:
         credDict['extraCredentials'] = decode(extraCred)[0]
-    except Exception as e:
-      print e
     return credDict
 
 ####

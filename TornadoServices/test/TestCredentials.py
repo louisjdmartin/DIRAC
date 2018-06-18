@@ -7,7 +7,7 @@
     and are stored in DIRAC/FrameworkSystem/Service
   
     Then you have to start tornado using script tornado-start-all.py in DIRAC/TornadoServices/scripts 
-    before running test
+    and diset with ``dirac-service Framework/diracCredDict`` before running test
 
     In configuration it have to be set as normal services, it will look like:
 
@@ -47,11 +47,11 @@ from pytest import mark, fixture
 parametrize = mark.parametrize
 
 
-def get_RPC_returnedValue(serviceName, RPCClient):
+def get_RPC_returnedValue(serviceName, Client):
   """
     Get credentials extracted tornado server or Dirac server
   """
-  service = RPCClient(serviceName) 
+  service = Client(serviceName) 
   return service.credDict()
 
 def get_all_returnedValues():
@@ -61,9 +61,9 @@ def get_all_returnedValues():
   repDirac = get_RPC_returnedValue(serviceNameDirac, RPCClient)
   return (repTornado, repDirac)
 
-@parametrize('UseServerCertificate', ('True', 'False'))
+@parametrize('UseServerCertificate', ('true', 'false'))
 def test_return_credential_are_equals(UseServerCertificate):
-  gConfigurationData.setOptionInCFG('/DIRAC/Security/UseServerCertificate', UseServerCertificate) 
+  gConfigurationData.setOptionInCFG( '/DIRAC/Security/UseServerCertificate', UseServerCertificate) 
 
   (repTornado, repDirac) = get_all_returnedValues()
 
@@ -73,6 +73,7 @@ def test_return_credential_are_equals(UseServerCertificate):
 
 @parametrize('UseServerCertificate', ('True', 'False'))
 def test_rpcStubs_are_equals(UseServerCertificate):
+  gConfigurationData.setOptionInCFG( '/DIRAC/Security/UseServerCertificate', UseServerCertificate) 
   (repTornado, repDirac) = get_all_returnedValues()
 
   # rep['rpcStub'] is at form (rpcStub, method, args) where rpcStub is tuple with (serviceName, kwargs)

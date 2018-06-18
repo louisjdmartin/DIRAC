@@ -50,6 +50,19 @@ class TornadoClient(TornadoBaseClient):
     return retVal
 
 
+def executeRPCStub( rpcStub ):
+  """
+  Playback a stub
+  # Copy-paste from DIRAC.Core.DISET.RPCClient with RPCClient changed into TornadoClient
+  """
+  #Generate a RPCClient with the same parameters
+  rpcClient = TornadoClient( rpcStub[0][0], **rpcStub[0][1] )
+  #Get a functor to execute the RPC call
+  rpcFunc = getattr( rpcClient, rpcStub[1] )
+  #Reproduce the call
+  return rpcFunc( *rpcStub[2] )
+
+
 # NOTE pour utilisation requests
 # https://lukasa.co.uk/2017/02/Configuring_TLS_With_Requests/
 # Depuis requests 2.12 certains chiffrements ne sont plus acceptees

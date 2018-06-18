@@ -103,7 +103,7 @@ def config(request):
   # request is given by @fixture decorator, addfinalizer set the function who need to be called after the tests
   request.addfinalizer(tearDown)
 
-
+## Tuple with (expectedClient, serviceName)
 client_imp = (
     (TornadoClient, 'WorkloadManagement/ServiceHttps'),
     (TornadoClient, 'https://server1:1234/WorkloadManagement/ServiceHttps'),

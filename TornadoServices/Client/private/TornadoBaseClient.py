@@ -1,6 +1,6 @@
 """
     TornadoBaseClient contain all low-levels functionnalities and initilization methods
-    It must be instanciated from a child class like TornadoClient
+    It must be instanciated from :py:class:`~DIRAC.TornadoServices.Client.TornadoClient`
 
     Requests library manage himself retry when connection failed, so the __nbOfRetry attribute is removed from DIRAC
     (For each URL requests manage retries himself, if it still fail, we try next url)
@@ -12,8 +12,12 @@
     After some tests request seems to retry 3 times by default.
     https://stackoverflow.com/questions/15431044/can-i-set-max-retries-for-requests-request
 
-    WARNING: If you use your own certificates, it's like in dips, please take a look at
-    https://dirac.readthedocs.io/en/latest/AdministratorGuide/InstallingDIRACService/index.html#using-your-own-ca
+    *WARNING*: If you use your own certificates, it's like in dips, please take a look at
+    :ref:`using_own_CA`
+
+    *WARNING*: Lots of method are copy-paste from :py:class:`~DIRAC.Core.DISET.private.BaseClient`.
+    And some methods are copy-paste AND modifications, for now it permit to fully separate DISET and HTTPS.
+    Later if HTTPS
 
 
 """
@@ -44,6 +48,7 @@ class TornadoBaseClient(object):
   KW_DELEGATED_DN = "delegatedDN"
   KW_DELEGATED_GROUP = "delegatedGroup"
   KW_IGNORE_GATEWAYS = "ignoreGateways"
+  KW_PROXY_LOCATION = "proxyLocation"
   KW_PROXY_STRING = "proxyString"
   KW_PROXY_CHAIN = "proxyChain"
   KW_SKIP_CA_CHECK = "skipCACheck"
@@ -64,14 +69,13 @@ class TornadoBaseClient(object):
       :param proxyString: Specify the proxy string
       :param proxyChain: Specify the proxy chain
       :param skipCACheck: Do not check the CA
-      :param keepAliveLapse: Duration for keepAliveLapse (heartbeat like)
+      :param keepAliveLapse: Duration for keepAliveLapse (heartbeat like)  (now managed by requests)
     """
 
     if not isinstance(serviceName, basestring):
       raise TypeError("Service name expected to be a string. Received %s type %s" %
                       (str(serviceName), type(serviceName)))
 
-    # TODO: redefine and use this
     self._destinationSrv = serviceName
     self._serviceName = serviceName
     self.__ca_location = False
@@ -91,6 +95,13 @@ class TornadoBaseClient(object):
     # self.__nbOfRetry removed in https, see note at the begining of the class
     self.__retryCounter = 1
     self.__bannedUrls = []
+
+    # For pylint...
+    self.setup = None
+    self.vo= None
+    self.serviceURL = None
+    self.__proxy_location = None
+
     for initFunc in (
         self.__discoverTimeout,
         self.__discoverSetup,
@@ -103,6 +114,10 @@ class TornadoBaseClient(object):
       if not result['OK'] and self.__initStatus['OK']:
         self.__initStatus = result
     self.numberOfURLs = 0
+    self._initialize()
+
+  def _initialize(self):
+    pass
 
   def __discoverSetup(self):
     """ Discover which setup to use and stores it in self.setup
@@ -160,7 +175,6 @@ class TornadoBaseClient(object):
 
         WARNING: COPY/PASTE FROM Core/Diset/private/BaseClient FOR NOW
         Used in propose action, but not reused
-        # TODO: See how it's sended and why
     """
     if self.KW_VO in self.kwargs and self.kwargs[self.KW_VO]:
       self.vo = str(self.kwargs[self.KW_VO])
@@ -320,7 +334,7 @@ class TornadoBaseClient(object):
     # If what was given as constructor attribute is a properly formed URL,
     # we just return this one.
     # If we have to use a gateway, we just replace the server name in it
-    if self._destinationSrv.find("https://") == 0:
+    if self._destinationSrv.startswith("https://"):
       gLogger.debug("Already given a valid url", self._destinationSrv)
       if not gatewayURL:
         return S_OK(self._destinationSrv)
@@ -468,10 +482,10 @@ class TornadoBaseClient(object):
     else:
       cert = self.__proxy_location
 
-    print "==================================================="
-    print "Certificat client: \t%s\nCA: \t\t\t%s" % (cert, verify)
-    print "==================================================="
-    print postArguments
+    # print "==================================================="
+    # print "Certificat client: \t%s\nCA: \t\t\t%s" % (cert, verify)
+    # print "==================================================="
+    # print postArguments
     # Do the request
     try:
       call = requests.post(url, data=postArguments, timeout=self.timeout, verify=verify,
@@ -483,6 +497,34 @@ class TornadoBaseClient(object):
       if retry < self.__nbOfUrls - 1:
         self._request(postArguments, retry + 1)
       return S_ERROR(e)
+
+  ####
+  #
+  # OLD INTERFACE
+  #
+  ####
+
+  def _connect(self, *args, **kwargs): #pylint: disable=unused-argument
+    """
+      Connection to server
+    """
+    gLogger.warn("Connect is now managed by Requests library.")
+    return S_OK()
+
+  def _disconnect(self, *args, **kwargs): #pylint: disable=unused-argument
+    """
+      Disconnect
+    """
+    gLogger.warn("Disconnect is now managed by Requests library.")
+    return S_OK()
+
+  def _proposeAction(self, *args, **kwargs): #pylint: disable=unused-argument
+    """
+      Ask for authorization
+    """
+    gLogger.warn("You don't need to _proposeAction for RPC in HTTPS.")
+    return S_OK()
+
 
 #### TODO ####
 # Rewrite this method:
