@@ -508,21 +508,21 @@ class TornadoBaseClient(object):
     """
       Connection to server
     """
-    gLogger.warn("Connect is now managed by Requests library.")
+    gLogger.info("Connect is now managed by Requests library.")
     return S_OK()
 
   def _disconnect(self, *args, **kwargs): #pylint: disable=unused-argument
     """
       Disconnect
     """
-    gLogger.warn("Disconnect is now managed by Requests library.")
+    gLogger.info("Disconnect is now managed by Requests library.")
     return S_OK()
 
   def _proposeAction(self, *args, **kwargs): #pylint: disable=unused-argument
     """
       Ask for authorization
     """
-    gLogger.warn("You don't need to _proposeAction for RPC in HTTPS.")
+    gLogger.info("You don't need to _proposeAction for RPC in HTTPS.")
     return S_OK()
 
 

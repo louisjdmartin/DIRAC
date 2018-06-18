@@ -67,13 +67,20 @@ Client / Service interactions
     :align: center
     :alt: Client/Service interactions
 
+*****************************************************
+Important changes between TornadoClient and RPCClient
+*****************************************************
+`Requests <http://docs.python-requests.org/>`_ library check more than DISET when reading certificates and do some stuff for us:
+
+- Server certificate must have subject alternative names. Requests check the hostname and you can have connection errors when using "localhost" for example. To avoid them you can add hostname in your ``/etc/hosts`` or add subject alternative name in certificate. (First solution is good for dev but in production you may use subject alternative names).
+- If server certificates are used by clients, you must add clientAuth in the extendedKeyUsage (requests also check that).
+- In server side M2Crypto is used instead of GSI (but not for a long time, see https://github.com/DIRACGrid/DIRAC/pull/3469 ) and conflict are possible between GSI and M2Crypto, to avoid them you can comment 4 lasts lines at ``DIRAC/Core/Security/__init__.py``
+- ``_connect()``, ``_disconnect()`` and ``_purposeAction()`` are now useless, ``_connect``/``_disconnect`` are now managed by `requests <http://docs.python-requests.org/>`_ and ``_purposeAction`` is no longer used is in HTTPS protocol. To keep same interface as RPCClient they only returns ``S_OK`` and gLogger prevent you when they are used.
+- All arguments are encoded in JSON with :py:class:`~DIRAC.Core.Utilities.JEncode.encode` so you can't send whatever you want (see :py:class:`~DIRAC.Core.Utilities.JEncode.encode` documentation for more).
+
 ********************
 Some notes for later
 ********************
 
-*WARNING*: Requests library check more than DISET when reading certificates:
-
-- Server certificate must have subject alternative names. Requests check the hostname and you can have connection errors when using "localhost" for example. To avoid them you can add hostname in your /etc/hosts or add subject alternative name in certificate. (First solution is good for dev but in production you may use subject alternative names)
-- If server certificates are used by clients, you MUST add clientAuth in the extendedKeyUsage (requests also check that)
 - For security purpose, I purpose to remove the CallStack inside the S_ERROR returned by server when error happen before authentication/authorization (or during authorization process, for e.g. when denying access). Or at least, make this choice configurable (so in dev you have the callstack and in prod it's hidden). I think people not authorized to access service did not need callstack who can gave lots of informations.
 - Maybe it's possible to add kwargs in HTTPS because when using post, arguments are named.

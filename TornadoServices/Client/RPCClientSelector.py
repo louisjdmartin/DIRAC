@@ -1,3 +1,16 @@
+"""
+  RPCClientSelector can replace RPCClient (with import RPCClientSelector as RPCClient)
+  to migrate from DISET to Tornado. This method choose and returns the client who should be
+  used for a service. If service use HTTPS, TornadoClient is returned, else it returns RPCClient
+
+  Example::
+  
+    from DIRAC.TornadoServices.Client.RPCClientSelector import RPCClientSelector as RPCClient
+    myService = RPCClient("Framework/MyService")
+    myService.doSomething()
+"""
+
+
 from DIRAC.TornadoServices.Client.TornadoClient import TornadoClient
 from DIRAC.Core.DISET.RPCClient import RPCClient
 from DIRAC.ConfigurationSystem.Client.PathFinder import getServiceURL

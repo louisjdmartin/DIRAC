@@ -1,16 +1,26 @@
 """
-  TornadoClient is equivalent of RPCClient in HTTPS.
+  TornadoClient is equivalent of the RPCClient but in HTTPS.
   Usage of TornadoClient is the same as RPCClient, you can instanciate TornadoClient with
-  complete url (https://domain/component/service) or just "component/service".
+  complete url (https://domain/component/service) or just "component/service". Like RPCClient
+  you can use all method defined in your service, your call will be automatically transformed 
+  in RPC.
 
   Main changes:
     - KeepAliveLapse is removed, requests library manage it himself.
-    - nbOfRetry (defined as private attribute) is remove, requests library manage it himself.
+    - nbOfRetry (defined as private attribute) is removed, requests library manage it himself.
     - Underneath it use HTTP POST protocol and JSON
 
   Changes to discuss:
     - Remove the CallStack returned by server when server send S_ERROR after failed authentication
        (or at least make it configurable, so it can be accessible in dev/debug but not in production for example)
+    - Possibility to add kwargs thanks to HTTPS
+
+  Example::
+
+    from DIRAC.TornadoServices.Client.TornadoClient import TornadoClient
+    myService = TornadoClient("Framework/MyService")
+    myService.doSomething() #Returns S_OK/S_ERROR
+
 """
 
 from DIRAC.Core.Utilities.JEncode import encode
@@ -50,20 +60,17 @@ class TornadoClient(TornadoBaseClient):
     return retVal
 
 
-def executeRPCStub( rpcStub ):
+def executeRPCStub(rpcStub):
   """
   Playback a stub
   # Copy-paste from DIRAC.Core.DISET.RPCClient with RPCClient changed into TornadoClient
   """
-  #Generate a RPCClient with the same parameters
-  rpcClient = TornadoClient( rpcStub[0][0], **rpcStub[0][1] )
-  #Get a functor to execute the RPC call
-  rpcFunc = getattr( rpcClient, rpcStub[1] )
-  #Reproduce the call
-  return rpcFunc( *rpcStub[2] )
+  # Generate a RPCClient with the same parameters
+  rpcClient = TornadoClient(rpcStub[0][0], **rpcStub[0][1])
+  # Get a functor to execute the RPC call
+  rpcFunc = getattr(rpcClient, rpcStub[1])
+  # Reproduce the call
+  return rpcFunc(*rpcStub[2])
 
 
-# NOTE pour utilisation requests
-# https://lukasa.co.uk/2017/02/Configuring_TLS_With_Requests/
-# Depuis requests 2.12 certains chiffrements ne sont plus acceptees
-# Passer Tornado en AES ?
+
