@@ -66,8 +66,8 @@ def config(request):
       {
         URLs
         {
-          ServiceDips = dips://server1:1234/WorkloadManagement/ServiceDips,dips://server2:1234/WorkloadManagement/ServiceDips
-          ServiceHttps = https://server1:1234/WorkloadManagement/ServiceHttps,https://server2:1234/WorkloadManagement/ServiceHttps
+          ServiceDips = dips://$MAINSERVERS$:1234/WorkloadManagement/ServiceDips
+          ServiceHttps = https://$MAINSERVERS$:1234/WorkloadManagement/ServiceHttps
         }
       }
     }
@@ -75,7 +75,7 @@ def config(request):
   Operations{
     Defaults
     {
-      MainServers = gw1, gw2
+      MainServers = server1, server2
     }
   }
   '''
@@ -127,31 +127,6 @@ def test_selection_when_using_RPCClientSelector(client, config):
   assert isinstance(clientSelected, clientWanted)
 
 
-@parametrize('client', client_imp)
-def test_selection_when_inherit_from_Client(client, config):
-  """
-    Another way to call a service is to create a class who inherit from DIRAC.Core.Base.Client
-    The class have a method who instanciate the RPCClient (or TornadoClient)
-    If service is HTTPS, it must return client who work with tornado (TornadoClient)
-    else it must return the RPCClient
-  """
-  clientWanted = client[0]
-  component_service = client[1]
-
-  clientInstance = ClientClass(component_service)
-  clientSelected = clientInstance._getRPC()
-  assert isinstance(clientSelected, clientWanted)
-
-
-class ClientClass(ClientSelector):
-  """
-    This class is just for the test of inherit
-  """
-
-  def __init__(self, component_service, **kwargs):
-    ClientSelector.__init__(self, **kwargs)
-    self.setServer(component_service)
-
 
 error_component = (
     'Too/Many/Sections',
@@ -182,5 +157,22 @@ def test_interface():
     # We don't need to test private methods / attribute
     # Private methods/attribute starts with __
     # dir also return private methods named with something like  _ClassName__PrivateMethodName
-    if not element.startswith('__') and re.match(r'_[A-Za-z]+__[A-Za-z0-9_]+', element) is None:
+    if not element.startswith('_'):
       assert element in interfaceTornadoClient
+
+
+
+client_imp = (
+    (2, 'WorkloadManagement/ServiceHttps'),
+    (1, 'https://server1:1234/WorkloadManagement/ServiceHttps'),
+    #(2, 'https://server1:1234/WorkloadManagement/ServiceHttps,https://server2:1234/WorkloadManagement/ServiceHttps'), In DIRAC AND Tornado we can give only 1 url
+)
+@parametrize('client', client_imp)
+def test_urls_used_by_TornadoClient(config, client):
+  ## We can't directly get url because they are randomized but we can check if we have right number of URL
+
+  nbOfUrl = client[0]
+  component_service = client[1]
+  clientSelected = RPCClientSelector(component_service)
+  # Little hack to get the private attribute
+  assert nbOfUrl == clientSelected._TornadoBaseClient__nbOfUrls

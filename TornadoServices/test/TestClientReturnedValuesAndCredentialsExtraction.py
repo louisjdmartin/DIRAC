@@ -61,8 +61,15 @@ def get_all_returnedValues():
   repDirac = get_RPC_returnedValue(serviceNameDirac, RPCClient)
   return (repTornado, repDirac)
 
+
+
+
+
 @parametrize('UseServerCertificate', ('true', 'false'))
 def test_return_credential_are_equals(UseServerCertificate):
+  """
+    The service called are for test and returns dictionnary
+  """
   gConfigurationData.setOptionInCFG( '/DIRAC/Security/UseServerCertificate', UseServerCertificate) 
 
   (repTornado, repDirac) = get_all_returnedValues()
@@ -73,8 +80,32 @@ def test_return_credential_are_equals(UseServerCertificate):
 
 @parametrize('UseServerCertificate', ('True', 'False'))
 def test_rpcStubs_are_equals(UseServerCertificate):
+  """
+    Navigating through array is a bit complicated in this test...
+    repDirac and repTornado may have the same structure:
+
+    repDirac dict{
+      OK: str
+      rpcStub: tuple{
+        ServiceName: str
+        kwargs: dict{
+          *** kwargs used to instanciate client ***
+        }
+        methodName: str
+        arguments: list
+      }
+      Value: dict { # NOT USED IN THIS TEST
+        *** Credentials dictionnary extracted by server *** 
+      }
+    }
+  """
+
+
   gConfigurationData.setOptionInCFG( '/DIRAC/Security/UseServerCertificate', UseServerCertificate) 
   (repTornado, repDirac) = get_all_returnedValues()
+
+  #Explicitly removed in Tornado
+  del repDirac['rpcStub'][0][1]['keepAliveLapse'] 
 
   # rep['rpcStub'] is at form (rpcStub, method, args) where rpcStub is tuple with (serviceName, kwargs)
   assert repTornado['rpcStub'][0][0] != repDirac['rpcStub'][0][0] #Services name are different

@@ -47,9 +47,13 @@ class TornadoService(RequestHandler):
     """
     pass
 
+  def initializeRequest(self):
+    pass
+
   def initialize(self, monitor, stats):
     """
       initialize, called at every request
+      WARNING can interfer with initialize in the handler
     """
 
     self.authorized = False
@@ -64,6 +68,7 @@ class TornadoService(RequestHandler):
       self.monReport = self.__startReportToMonitoring()
     except Exception:
       self.monReport = False
+    self.initializeRequest()
 
   def prepare(self):
     """

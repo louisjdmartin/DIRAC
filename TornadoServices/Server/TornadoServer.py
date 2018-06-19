@@ -30,6 +30,7 @@ from DIRAC.TornadoServices.Server.HandlerManager import HandlerManager
 from DIRAC import gLogger, S_ERROR, S_OK
 from DIRAC.FrameworkSystem.Client.MonitoringClient import MonitoringClient
 from DIRAC.Core.Utilities import Time
+from DIRAC.Core.Security import Locations
 
 
 class TornadoServer(object):
@@ -76,31 +77,20 @@ class TornadoServer(object):
 
     router = Application(self.urls, debug=self.debug)
 
-    # SSL_OPTS = {
-    #   'certfile': os.path.join(cert_dir, "hostcert.pem"),
-    #   'keyfile': os.path.join(cert_dir, "hostkey.pem"),
-    #   'cert_reqs': M2Crypto.SSL.verify_peer,
-    #   'ca_certs': os.path.join(cert_dir, "hostcert.pem"),
-    #   'sslDebug' : True
-    # }
+
+    certs = Locations.getHostCertificateAndKeyLocation()
+    ca = Locations.getCAsLocation()
+    print ca
+
     cert_dir = '/root/dev/etc/grid-security/'
     SSL_OPTS = {
-        'certfile': os.path.join(cert_dir, "hostcert.pem"),
-        'keyfile': os.path.join(cert_dir, "hostkey.pem"),
+        'certfile': certs[0],
+        'keyfile': certs[1],
         'cert_reqs': M2Crypto.SSL.verify_peer,
-        'ca_certs': os.path.join(cert_dir, "certs/ca/ca.cert.pem"),
-        #'ca_certs': '/tmp/tornado_m2crypto/tornado_m2crypto/test/certs/allCAs.pem',
+        #'ca_certs': os.path.join(cert_dir, "certificates/ca.cert.pem"),
+        'ca_certs': ca,
         #'sslDebug' : True
     }
-    # Define SSLContext
-    #ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=os.path.join(cert_dir, "hostcert.pem"))
-
-    # Force client to use certificate
-    #ssl_ctx.verify_mode = ssl.CERT_REQUIRED
-
-    # Load host certificates
-    # ssl_ctx.load_cert_chain(os.path.join(cert_dir, "hostcert.pem"),
-    #                        os.path.join(cert_dir, "hostkey.pem"))
 
     # Start server
     server = HTTPServer(router, ssl_options=SSL_OPTS)

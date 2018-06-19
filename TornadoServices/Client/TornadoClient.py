@@ -46,6 +46,7 @@ class TornadoClient(TornadoBaseClient):
       return self.executeRPC(attrname, *args)
     return call
 
+  # Name from RPCClient Interface
   def executeRPC(self, method, *args):
     """
       This function call a remote service
@@ -65,10 +66,10 @@ def executeRPCStub(rpcStub):
   Playback a stub
   # Copy-paste from DIRAC.Core.DISET.RPCClient with RPCClient changed into TornadoClient
   """
-  # Generate a RPCClient with the same parameters
-  rpcClient = TornadoClient(rpcStub[0][0], **rpcStub[0][1])
+  # Generate a client with the same parameters
+  client = TornadoClient(rpcStub[0][0], **rpcStub[0][1])
   # Get a functor to execute the RPC call
-  rpcFunc = getattr(rpcClient, rpcStub[1])
+  rpcFunc = getattr(client, rpcStub[1])
   # Reproduce the call
   return rpcFunc(*rpcStub[2])
 

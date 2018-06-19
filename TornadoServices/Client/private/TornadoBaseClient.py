@@ -113,7 +113,6 @@ class TornadoBaseClient(object):
       result = initFunc()
       if not result['OK'] and self.__initStatus['OK']:
         self.__initStatus = result
-    self.numberOfURLs = 0
     self._initialize()
 
   def _initialize(self):
@@ -498,32 +497,6 @@ class TornadoBaseClient(object):
         self._request(postArguments, retry + 1)
       return S_ERROR(e)
 
-  ####
-  #
-  # OLD INTERFACE
-  #
-  ####
-
-  def _connect(self, *args, **kwargs): #pylint: disable=unused-argument
-    """
-      Connection to server
-    """
-    gLogger.info("Connect is now managed by Requests library.")
-    return S_OK()
-
-  def _disconnect(self, *args, **kwargs): #pylint: disable=unused-argument
-    """
-      Disconnect
-    """
-    gLogger.info("Disconnect is now managed by Requests library.")
-    return S_OK()
-
-  def _proposeAction(self, *args, **kwargs): #pylint: disable=unused-argument
-    """
-      Ask for authorization
-    """
-    gLogger.info("You don't need to _proposeAction for RPC in HTTPS.")
-    return S_OK()
 
 
 #### TODO ####
