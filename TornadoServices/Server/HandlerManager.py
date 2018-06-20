@@ -76,7 +76,7 @@ class HandlerManager(object):
     """
     gLogger.debug("Trying to auto-discover the handlers for Tornado")
 
-    # Look in config file
+    # Look in config
     diracSystems = gConfig.getSections('/Systems')
     serviceList = []
     if diracSystems['OK']:

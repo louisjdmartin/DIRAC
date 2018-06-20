@@ -1,8 +1,8 @@
 import csv
 import matplotlib.pyplot as plt
 
-testTornado = ['perf-test/results/results_2018.05.28_12.02.52']
-testDirac = ['perf-test/results/results_2018.05.28_12.12.55']
+testTornado = ['perf-test/results/results_2018.06.20_10.11.37', 'perf-test/results/results_2018.06.20_10.18.26']
+testDirac = ['perf-test/results/results_2018.06.20_10.12.40', 'perf-test/results/results_2018.06.20_10.12.40']
 
 def read_data(test, groupSize):
   with open(test+'/results.csv', 'rb') as csvfile:
@@ -41,5 +41,5 @@ def affiche(testTornado, testDirac, subplot, groupSize):
 # On suppose qu'il y a autant de test Tornado que Dirac pour ce script
 # La formule bizarre permet juste d'afficher les graphiques dans la meme fenetre
 for i in range(len(testTornado)):
-  affiche(testTornado[i], testDirac[i], 100*len(testTornado)+11+i,42)
+  affiche(testTornado[i], testDirac[i], 100*len(testTornado)+11+i,4)
 plt.show()

@@ -50,3 +50,8 @@ class UserDiracHandler(RequestHandler):
   types_listUsers = []
   def export_listUsers(self):
     return self.userDB.listUsers()
+
+  auth_unauthorized = ['nobody']
+  types_unauthorized = []
+  def export_unauthorized(self):
+    return S_OK()

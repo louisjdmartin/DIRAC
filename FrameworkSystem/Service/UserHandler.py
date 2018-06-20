@@ -10,6 +10,7 @@ class UserHandler(TornadoService):
   @classmethod
   def initializeHandler(cls, serviceInfoDict): 
     cls.userDB = UserDB()
+    #itmustcrash()
     return S_OK()
 
 
@@ -59,3 +60,8 @@ class UserHandler(TornadoService):
       :return: S_OK with S_OK['Value'] list of [UserId, UserName]
     """
     return self.userDB.listUsers()
+
+  auth_unauthorized = ['nobody']
+  types_unauthorized = []
+  def export_unauthorized(self):
+    return S_OK()

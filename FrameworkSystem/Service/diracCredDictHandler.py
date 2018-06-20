@@ -1,13 +1,5 @@
 """ 
-  This service is created to returns credentials dictionnary extracted by server. It may be used for running Tornado integration tests.
-
-  #################################################################
-  #                                                               #
-  #                            WARNING                            #
-  #  This service may only be used for testing purpose to check   #
-  #  if credentials extraction is the same in DISET and TORNADO ! #
-  #                                                               #
-  #################################################################
+  Implementation of whoami in diset for tests
 """
 
 __RCSID__ = "$Id$"

@@ -22,6 +22,57 @@ Service
 
 Service returns to Client S_OK/S_ERROR encoded in JSON
 
+*********************************************************
+Important changes between DISET server and Tornado Server
+*********************************************************
+
+Internal structure
+******************
+
+- :py:class:`~DIRAC.Core.DISET.ServiceReactor` is now :py:class:`~DIRAC.TornadoServices.Server.TornadoServer`
+- :py:class:`~DIRAC.Core.DISET.private.Service` and :py:class:`~DIRAC.Core.DISET.RequestHandler` are now merge into :py:class:`~DIRAC.TornadoServices.Server.TornadoService`
+- (to discuss) CallStack from S_ERROR are deleted for every error who happen before authentication.cd 
+
+How to write service
+********************
+Nothing better than example::
+
+  from DIRAC.TornadoServices.Server.TornadoService import TornadoService
+  class yourServiceHandler(TornadoService):
+
+    @classmethod
+    def initializeHandler(cls, infosDict):
+      ## Called 1 time, at first request
+
+    def initializeRequest(self):
+      ## Called at each request
+
+    auth_someMethod = ['all']
+    def export_someMethod(self):
+      #Insert your method here, don't forgot the return
+
+Write a service is similar in tornado and diset. You have to define your method starting with ``export_``, your initialization method is a class method called ``initializeHandler``
+Main changes in tornado are:
+
+- Service are initialized at first request
+- You **should not** write method called ``initialize`` because Tornado already use it, so the ``initialize`` from diset handlers became ``initialize_request``
+- infosDict, arguments of initializedHandler is not really the same as one from diset, all things relative to transport are removed, to write on the transport you can use self.write() but I recommend to avoid his usage, Tornado will encode and write what you return.
+
+How to start server
+*******************
+The easy way, use ``DIRAC/TornadoService/script/tornado-start-all.py`` it will start all services registered in configuration !
+
+The configurable way::
+
+  from DIRAC.TornadoServices.Server.TornadoServer import TornadoServer
+  serverToLaunch = TornadoServer(youroptions)
+  serverToLaunch.startTornado()
+
+Options availlable are:
+
+- services, should be a list, to start only these services
+- debug, True or False, activate debug mode of Tornado: more logs when there is a error, autoreload server when you edit a script
+- port, an int, if you don't want to use the 443
 
 ******
 Client
