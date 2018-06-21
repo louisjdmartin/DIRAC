@@ -1,6 +1,5 @@
 """
-TORNADO SERVER
-Initialize and start a server for RPC call throught HTTPS
+TornadoServer create a web server and load services. It may work better with TornadoClient but as it accepts HTTPS you can create your own client
 """
 
 __RCSID__ = "$Id$"
@@ -62,7 +61,7 @@ class TornadoServer(object):
   def __init__(self, services=None, debug=False, port=443):
     """
     :param list services: List of services you want to start, start all by default
-    :param str debug: Activate debug mode of Tornado (autoreload server + more errors display)
+    :param str debug: Activate debug mode of Tornado (autoreload server + more errors display) and M2Crypto
     :param int port: Used to change port, default is 443
     """
 
@@ -71,7 +70,7 @@ class TornadoServer(object):
     # URLs for services: 1URL/Service
     self.urls = []
     # Other infos
-    self.debug = debug  # Used only by tornado
+    self.debug = debug  # Used by tornado and M2Crypto
     self.port = port
     self.handlerManager = HandlerManager()
     self._monitor = MonitoringClient()
@@ -91,7 +90,7 @@ class TornadoServer(object):
     """
       Start the tornado server when ready.
       The script is blocked in the Tornado IOLoop.
-      Multiprocess option is available, not active by defaults
+      Multiprocess option is available, not active by default.
     """
 
     gLogger.debug("Starting Tornado")
@@ -110,9 +109,8 @@ class TornadoServer(object):
         'certfile': certs[0],
         'keyfile': certs[1],
         'cert_reqs': M2Crypto.SSL.verify_peer,
-        #'ca_certs': os.path.join(cert_dir, "certificates/ca.cert.pem"),
         'ca_certs': ca,
-        #'sslDebug' : True
+        'sslDebug' : self.debug
     }
 
     # Start server

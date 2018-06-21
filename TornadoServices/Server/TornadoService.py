@@ -112,7 +112,7 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     self.stats = stats
     self.requestStartTime = time.time()
     stats['requests'] += 1
-    self._monitor.setComponentExtraParam('queries', stats['requests'])
+    #self._monitor.setComponentExtraParam('queries', stats['requests'])
     self.credDict = None
     self.authorized = False
     self.method = None
@@ -198,7 +198,7 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
          self.credDict['CN'],
          self.credDict['DN'],
          self.request.remote_ip))
-    if "CallStack" in error.keys():
+    if "CallStack" in error:
       # If blocked because not authorized, client did not need server-side CallStack
       del error["CallStack"]
 
