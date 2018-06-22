@@ -25,8 +25,10 @@
 
 import os
 import time
-
-from tornado.web import RequestHandler, MissingArgumentError
+import concurrent.futures
+from tornado.web import RequestHandler, MissingArgumentError, asynchronous
+from tornado import gen
+from tornado.ioloop import IOLoop
 
 from DIRAC.Core.Security.X509Chain import X509Chain
 from DIRAC.Core.DISET.AuthManager import AuthManager
@@ -50,6 +52,7 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
   """
   __FLAG_INIT_DONE = False
 
+
   @classmethod
   def __initializeService(cls, url):
     """
@@ -62,7 +65,6 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     cls.log.info("First use of %s, initializing service..." % url)
     cls._authManager = AuthManager("%s/Authorization" % PathFinder.getServiceSection(serviceName))
     cls._cfg = ServiceConfiguration([serviceName])
-    cls._lockManager = LockManager(cls._cfg.getMaxWaitingPetitions())
     cls._serviceName = serviceName
     cls._validNames = [serviceName]
     serviceInfo = {'serviceName': serviceName,
@@ -108,15 +110,19 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     """
     self.authorized = False
     self.method = None
-    self._monitor = monitor
-    self.stats = stats
+    #self._monitor = monitor
+    #self.stats = stats
     self.requestStartTime = time.time()
     stats['requests'] += 1
     #self._monitor.setComponentExtraParam('queries', stats['requests'])
     self.credDict = None
     self.authorized = False
     self.method = None
-
+    if not self.__FLAG_INIT_DONE:
+      init = self.__initializeService(self.srv_getURL())
+      if not init['OK']:
+        gLogger.debut("Error during initalization")
+        gLogger.debug(init)
     # try:
     #   self.monReport = self.__startReportToMonitoring()
     # except Exception:
@@ -125,22 +131,15 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
   def prepare(self):
     """
       prepare
-      Check authorizations and get lock
     """
 
     # Init of service must be here, because if it crash we should be able to end request
     if not self.__FLAG_INIT_DONE:
-      init = self.__initializeService(self.srv_getURL())
-      if not init['OK']:
-        del init['CallStack']  # Removed because happen before authentication, but displayed in server side
-        self.set_status(500)
-        self.write(encode(init))
-        self.finish()
+      self.write(encode("Service can't be initialized !"))
+      self.finish()
 
     self.credDict = self.gatherPeerCredentials()
-    self._lockManager.lockGlobal()
     self.method = self.get_argument("method")
-    self.initializeRequest()
     self.log.notice("Incoming request on /%s: %s" % (self._serviceName, self.method))
     try:
       hardcodedAuth = getattr(self, 'auth_' + self.method)
@@ -151,6 +150,7 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     if not self.authorized:
       self.reportUnauthorizedAccess()
 
+  @gen.coroutine
   def post(self): #pylint: disable=arguments-differ
     """
     HTTP POST, used for RPC
@@ -158,30 +158,49 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
       and list of arguments in JSON in "args" argument
     """
 
-    # Get arguments if exists
+    # Execute the method
+    # None it's because we let Tornado manage the executor
+    retVal = yield IOLoop.current().run_in_executor(None, self.__executeMethod)
+    # if there is 2 request at the same time the both are executed (same call or not)
+    # We can change a little comportement by using 1 executor/service: 
+    # if 2 requests append at the same and there are from same service, one is executed, then the other
+    # if 2 requests append at the same time in different service, both are executed
+
+    # Trying to encode results
+    try:
+      encoded_result = encode(retVal.result())
+    except TypeError as e:
+      encoded_result = encode(S_ERROR("Encode error ! Returned value look non-encodable in JSON"))
+
+    self.write(encoded_result)
+    self.finish()
+
+  @gen.coroutine
+  def __executeMethod(self):
+
+    # getting method
+    try:
+      method = getattr(self, 'export_%s' % self.method)
+    except AttributeError as e:
+      self.set_status(501)
+      return S_ERROR("Unknown method %s" % self.method)
+
+    #Decode args
     try:
       args_encoded = self.get_body_argument('args')
     except MissingArgumentError:
       args = []
     args = decode(args_encoded)[0]
 
-    # Execute the method
+    #Execute
     try:
-      self._lockManager.lock("RPC/%s" % self.method)
-      method = getattr(self, 'export_%s' % self.method)
-      try:
-        retVal = method(*args)
-        self.write(encode(retVal))
-      except Exception as e:#pylint: disable=broad-except
-        self.set_status(500)
-        self.write(S_ERROR(e))
+      self.initializeRequest()
+      retVal = method(*args)
+    except Exception as e:#pylint: disable=broad-except
+      retVal = S_ERROR(e)
 
-    except AttributeError as e:
-      self.set_status(501)  # 501 = not implemented in HTTP
-      self.write(encode(S_ERROR("Unknown method %s" % self.method)))
+    return retVal
 
-    finally:
-      self._lockManager.unlock("RPC/%s" % self.method)
 
   def reportUnauthorizedAccess(self, errorCode=403):
     """
@@ -214,7 +233,6 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     """
     requestDuration = time.time() - self.requestStartTime
     gLogger.notice("Ending request to %s after %fs" % (self.srv_getURL(), requestDuration))
-    self._lockManager.unlockGlobal()
     # if self.monReport:
     #   self.__endReportToMonitoring(*monReport)
 
@@ -222,6 +240,8 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     """
       Load client certchain in DIRAC and extract informations
     """
+
+    # TODO a remplacer
     chainAsText = self.request.connection.stream.socket.get_peer_cert().as_pem()
     peerChain = X509Chain()
 
@@ -293,11 +313,20 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
   auth_ping = ['all']
 
   def export_ping(self):
+    # un peu bourrin (pour le test)
+    # Bloque tout
+    # def task():
+    #   a=1
+    #   b=2
+    #   c=3
+    # deb= time.time()
+    # while time.time()-deb<4:
+    #   task()
+
     """
       Default ping method, returns some info about server
     """
-    # FROM DIRAC.Core.DISET.RequestHandler
-
+    # COPY FROM DIRAC.Core.DISET.RequestHandler
     dInfo = {}
     dInfo['version'] = DIRAC.version
     dInfo['time'] = Time.dateTime()
@@ -328,6 +357,8 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
                           'elapsed real time': stTimes[4]
                          }
 
+
+    #print "CHRIS ping return"
     return S_OK(dInfo)
 
   auth_echo = ['all']
@@ -348,7 +379,7 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     credDict = self.srv_getRemoteCredentials()
     if 'x509Chain' in credDict:
       del credDict['x509Chain']  # Not serializable
-    return credDict
+    return S_OK(credDict)
 
   def getConfig(self):
     """ Return configuration

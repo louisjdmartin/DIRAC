@@ -86,7 +86,7 @@ class TornadoServer(object):
       # handlerDict[key].initializeService(key)
       self.urls.append(url(key, handlerDict[key], dict(monitor=self._monitor, stats=self.stats)))
 
-  def startTornado(self, multiprocess=False):
+  def startTornado(self, multiprocess=True):
     """
       Start the tornado server when ready.
       The script is blocked in the Tornado IOLoop.

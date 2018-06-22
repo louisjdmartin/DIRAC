@@ -10,9 +10,9 @@ print "user server certficate now", gConfig.useServerCertificate()
 
 
 from DIRAC.TornadoServices.Client.TornadoClient import TornadoClient
-serviceTornado = TornadoClient('Framework/tornadoCredDict')
+serviceTornado = TornadoClient('Framework/User')
 #serviceTornado = TornadoClient('https://MrBoincHost:443/Framework/User')
-repTornado = serviceTornado.credDict()
+repTornado = serviceTornado.whoami()
 
 
 from DIRAC.Core.DISET.RPCClient import RPCClient

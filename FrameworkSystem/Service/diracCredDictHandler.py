@@ -12,11 +12,11 @@ class diracCredDictHandler(RequestHandler):
 
   @classmethod
   def initializeHandler(cls, infosDict):
-    gLogger.warn("This service is for testing purpose, it may not be active in production")
+    #gLogger.warn("This service is for testing purpose, it may not be active in production")
     return S_OK()
 
   def initialize(self):
-    gLogger.warn("This service is for testing purpose, it may not be active in production")
+    #gLogger.warn("This service is for testing purpose, it may not be active in production")
 
 
   auth_credDict = ['all']
