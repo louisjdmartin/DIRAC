@@ -37,7 +37,7 @@ class HandlerManager(object):
       Function who add handler to list of known handlers
 
 
-      :param handlerTuple: (path, class) --> ObjectLoader.getObjects() returns in this form, it's why we use it like this
+      :param handlerTuple: (path, class)
     """
     # Check if handler not already loaded
     if not url or url not in self.__handlers:
@@ -55,7 +55,7 @@ class HandlerManager(object):
 
       # We add "/" if missing at begin, e.g. we found "Framework/Service"
       # URL can't be relative in Tornado
-      if url and not url.find('/') == 0:
+      if url and url.startswith('/'):
         url = "/%s" % url
       elif not url:
         gLogger.warn("URL not found for %s" % (handlerTuple[0]))

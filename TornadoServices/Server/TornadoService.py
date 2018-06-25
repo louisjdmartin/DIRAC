@@ -25,9 +25,11 @@
 
 import os
 import time
+from datetime import datetime
 import concurrent.futures
 from tornado.web import RequestHandler, MissingArgumentError, asynchronous
 from tornado import gen
+import tornado.ioloop
 from tornado.ioloop import IOLoop
 
 from DIRAC.Core.Security.X509Chain import X509Chain
@@ -37,10 +39,11 @@ from DIRAC.Core.DISET.private.LockManager import LockManager
 from DIRAC.ConfigurationSystem.Client import PathFinder
 from DIRAC.Core.Utilities.JEncode import decode, encode
 from DIRAC import S_OK, S_ERROR, gLogger
-from DIRAC.Core.Utilities import Time
+from DIRAC.Core.Utilities import MemStat
 from DIRAC.Core.Utilities.DErrno import ENOAUTH
 from DIRAC import gConfig
 import DIRAC
+from DIRAC.FrameworkSystem.Client.MonitoringClient import MonitoringClient
 
 
 
@@ -52,19 +55,64 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
   """
   __FLAG_INIT_DONE = False
 
+  @classmethod
+  def flush_monitor(cls):
+    #For tests, force to send more often
+    cls._monitor.flush()
+
 
   @classmethod
-  def __initializeService(cls, url):
+  def _initMonitoring(cls, serviceName):
+
+    # Init extra bits of monitoring
+  
+    cls._monitor.setComponentType(MonitoringClient.COMPONENT_WEB)  # ADD COMPONENT TYPE FOR TORNADO ?
+
+
+    cls._monitor.initialize()
+
+    if tornado.process.task_id() is None: # Single process mode
+      cls._monitor.setComponentName('Tornado/%s'%serviceName)
+    else:
+      cls._monitor.setComponentName('Tornado/CPU%d/%s'%(tornado.process.task_id(), serviceName))
+
+
+    cls._monitor.setComponentLocation( cls._cfg.getURL() )
+
+    cls._monitor.registerActivity( "Queries", "Queries served", "Framework", "queries", MonitoringClient.OP_RATE )
+
+
+    cls._monitor.setComponentExtraParam('DIRACVersion', DIRAC.version)
+    cls._monitor.setComponentExtraParam('platform', DIRAC.getPlatform())
+    cls._monitor.setComponentExtraParam('startTime', datetime.now())
+
+
+    cls._stats = {'requests': 0, 'monitorLastStatsUpdate': time.time()}
+
+    return S_OK()
+
+
+  @classmethod
+  def __initializeService(cls, url, debug):
     """
       Initialize a service, called at first request
     """
     serviceName = url[1:]
 
+    if debug: # In debug mode we force monitoring to send data every 10 seconds
+      tornado.ioloop.PeriodicCallback(cls.flush_monitor, 10000).start()
+    # if not in debug mode, MonitoringClient sends data himself
+
+    cls.debug = debug
     cls.log = gLogger
-    cls._startTime = Time.dateTime()
+    cls._startTime = datetime.now()
     cls.log.info("First use of %s, initializing service..." % url)
     cls._authManager = AuthManager("%s/Authorization" % PathFinder.getServiceSection(serviceName))
     cls._cfg = ServiceConfiguration([serviceName])
+
+    cls._monitor = MonitoringClient()
+    cls._initMonitoring(serviceName)
+
     cls._serviceName = serviceName
     cls._validNames = [serviceName]
     serviceInfo = {'serviceName': serviceName,
@@ -74,18 +122,24 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
                   }
     cls._serviceInfoDict = serviceInfo
 
+    cls.__monitorLastStatsUpdate = time.time()
+
     try:
       cls.initializeHandler(serviceInfo)
     # If anything happen during initialization, we return the error
     except Exception as e: #pylint: disable=broad-except
       gLogger.error(e)
       error = S_ERROR('Error while initializing')
-      for stack in error['CallStack']:
-        gLogger.debug(stack)  # Display on log for debug
+
+      if self.debug:
+        for stack in error['CallStack']:
+          gLogger.debug(stack)  # Display on log for debug, because removed when sended to client
       return error
 
     cls.__FLAG_INIT_DONE = True
     return S_OK()
+
+
 
   @classmethod
   def initializeHandler(cls, serviceInfoDict):
@@ -102,32 +156,33 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     """
     pass
 
-  def initialize(self, monitor, stats): #pylint: disable=arguments-differ
+  def initialize(self, debug): #pylint: disable=arguments-differ
     """
       initialize, called at every request
       WARNING: DO NOT REWRITE THIS FUNCTION IN YOUR HANDLER
           ==> initialize in DISET became initializeRequest in HTTPS !
     """
+    self.debug = debug
     self.authorized = False
     self.method = None
-    #self._monitor = monitor
-    #self.stats = stats
     self.requestStartTime = time.time()
-    stats['requests'] += 1
-    #self._monitor.setComponentExtraParam('queries', stats['requests'])
     self.credDict = None
     self.authorized = False
     self.method = None
     if not self.__FLAG_INIT_DONE:
-      init = self.__initializeService(self.srv_getURL())
+      init = self.__initializeService(self.srv_getURL(), debug)
       if not init['OK']:
         gLogger.debut("Error during initalization")
         gLogger.debug(init)
-    # try:
-    #   self.monReport = self.__startReportToMonitoring()
-    # except Exception:
-    #   self.monReport = False
+        return False
 
+
+    self._stats['requests'] += 1
+    #self._monitor.setComponentName(self.srv_getURL())
+    self._monitor.setComponentExtraParam('queries', self._stats['requests'])
+    self._monitor.addMark("Queries")
+
+    
   def prepare(self):
     """
       prepare
@@ -161,18 +216,9 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     # Execute the method
     # None it's because we let Tornado manage the executor
     retVal = yield IOLoop.current().run_in_executor(None, self.__executeMethod)
-    # if there is 2 request at the same time the both are executed (same call or not)
-    # We can change a little comportement by using 1 executor/service: 
-    # if 2 requests append at the same and there are from same service, one is executed, then the other
-    # if 2 requests append at the same time in different service, both are executed
-
-    # Trying to encode results
-    try:
-      encoded_result = encode(retVal.result())
-    except TypeError as e:
-      encoded_result = encode(S_ERROR("Encode error ! Returned value look non-encodable in JSON"))
-
-    self.write(encoded_result)
+   
+    # Tornado recommend to write in main thread
+    self.write(retVal.result())
     self.finish()
 
   @gen.coroutine
@@ -198,8 +244,13 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
       retVal = method(*args)
     except Exception as e:#pylint: disable=broad-except
       retVal = S_ERROR(e)
+    # Trying to encode results
+    try:
+      encoded_result = encode(retVal)
+    except TypeError as e:
+      encoded_result = encode(S_ERROR("Encode error ! Returned value look non-encodable in JSON"))
 
-    return retVal
+    return encoded_result
 
 
   def reportUnauthorizedAccess(self, errorCode=403):
@@ -233,8 +284,6 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     """
     requestDuration = time.time() - self.requestStartTime
     gLogger.notice("Ending request to %s after %fs" % (self.srv_getURL(), requestDuration))
-    # if self.monReport:
-    #   self.__endReportToMonitoring(*monReport)
 
   def gatherPeerCredentials(self):
     """
@@ -273,35 +322,6 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
         credDict['extraCredentials'] = decode(extraCred)[0]
     return credDict
 
-####
-#
-# Monitoring methods
-#
-####
-  # def __startReportToMonitoring(self):
-  #   self._monitor.addMark("Queries")
-  #   now = time.time()
-  #   stats = os.times()
-  #   cpuTime = stats[0] + stats[2]
-  #   if now - self.stats["monitorLastStatsUpdate"] < 0:
-  #     return (now, cpuTime)
-  #   # Send CPU consumption mark
-  #   wallClock = now - self.__monitorLastStatsUpdate
-  #   self.stats["monitorLastStatsUpdate"] = now
-  #   # Send Memory consumption mark
-  #   membytes = MemStat.VmB('VmRSS:')
-  #   if membytes:
-  #     mem = membytes / (1024. * 1024.)
-  #     self._monitor.addMark('MEM', mem)
-  #   return (now, cpuTime)
-
-  # def __endReportToMonitoring(self, initialWallTime, initialCPUTime):
-  #   wallTime = time.time() - initialWallTime
-  #   stats = os.times()
-  #   cpuTime = stats[0] + stats[2] - initialCPUTime
-  #   percentage = cpuTime / wallTime * 100.
-  #   if percentage > 0:
-  #     self._monitor.addMark('CPU', percentage)
 
 
 ####
@@ -313,23 +333,13 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
   auth_ping = ['all']
 
   def export_ping(self):
-    # un peu bourrin (pour le test)
-    # Bloque tout
-    # def task():
-    #   a=1
-    #   b=2
-    #   c=3
-    # deb= time.time()
-    # while time.time()-deb<4:
-    #   task()
-
     """
       Default ping method, returns some info about server
     """
     # COPY FROM DIRAC.Core.DISET.RequestHandler
     dInfo = {}
     dInfo['version'] = DIRAC.version
-    dInfo['time'] = Time.dateTime()
+    dInfo['time'] = datetime.now()
     # Uptime
     try:
       with open("/proc/uptime") as oFD:
@@ -339,7 +349,7 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
       pass
     startTime = self._startTime
     dInfo['service start time'] = self._startTime
-    serviceUptime = Time.dateTime() - startTime
+    serviceUptime = datetime.now() - startTime
     dInfo['service uptime'] = serviceUptime.days * 3600 + serviceUptime.seconds
     # Load average
     try:

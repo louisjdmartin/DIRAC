@@ -14,12 +14,14 @@ from DIRAC.TornadoServices.Server.TornadoServer import TornadoServer
 from DIRAC.ConfigurationSystem.Client.PathFinder import getSystemInstance
 
 localCfg = LocalConfiguration()
-#if value and value.lower() in ( "yes", "true", "y" ):
+
+debug = '--debug' in sys.argv
+multiprocess = '--multiprocess' in sys.argv
 
 
-## TODO a reecrire !
 
 localCfg.addMandatoryEntry("/DIRAC/Setup")
+
 localCfg.addDefaultEntry("LogLevel", "INFO")
 localCfg.addDefaultEntry("LogColor", True)
 resultDict = localCfg.loadUserData()
@@ -31,5 +33,5 @@ if not resultDict['OK']:
 includeExtensionErrors()
 
 
-serverToLaunch = TornadoServer()
-serverToLaunch.startTornado()
+serverToLaunch = TornadoServer(debug=debug)
+serverToLaunch.startTornado(multiprocess=multiprocess)

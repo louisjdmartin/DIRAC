@@ -6,6 +6,7 @@ __RCSID__ = "$Id$"
 
 
 import time
+import os
 from socket import error as socketerror
 import M2Crypto
 
@@ -22,12 +23,14 @@ tornado.iostream.SSLIOStream.configure('tornado_m2crypto.m2iostream.M2IOStream')
 from tornado.httpserver import HTTPServer
 from tornado.web import Application, url
 from tornado.ioloop import IOLoop
+import tornado.ioloop
 
-
+import DIRAC
 from DIRAC.TornadoServices.Server.HandlerManager import HandlerManager
-from DIRAC import gLogger, S_ERROR
+from DIRAC import gLogger, S_ERROR, S_OK
 from DIRAC.FrameworkSystem.Client.MonitoringClient import MonitoringClient
 from DIRAC.Core.Security import Locations
+from DIRAC.Core.Utilities import Time, MemStat
 
 
 
@@ -74,7 +77,6 @@ class TornadoServer(object):
     self.port = port
     self.handlerManager = HandlerManager()
     self._monitor = MonitoringClient()
-    self.stats = {'requests': 0, 'monitorLastStatsUpdate': time.time()}
 
     # If services are defined, load only these ones (useful for debug purpose)
     if services and services != []:
@@ -84,17 +86,17 @@ class TornadoServer(object):
     handlerDict = self.handlerManager.getHandlersDict()
     for key in handlerDict:
       # handlerDict[key].initializeService(key)
-      self.urls.append(url(key, handlerDict[key], dict(monitor=self._monitor, stats=self.stats)))
+      self.urls.append(url(key, handlerDict[key], dict(debug=debug)))
 
-  def startTornado(self, multiprocess=True):
+  def startTornado(self, multiprocess=False):
     """
       Start the tornado server when ready.
       The script is blocked in the Tornado IOLoop.
-      Multiprocess option is available, not active by default.
+      Multiprocess option is available
     """
 
     gLogger.debug("Starting Tornado")
-    #self._initMonitoring()
+    self._initMonitoring()
 
     if self.debug:
       gLogger.warn("TORNADO use debug mode, autoreload can generate unexpected effects, use it only in dev")
@@ -126,26 +128,83 @@ class TornadoServer(object):
     gLogger.always("Listening on port %s" % self.port)
     for service in self.urls:
       gLogger.debug("Available service: %s" % service)
+
+    self.__monitorLastStatsUpdate = time.time()
+    self.__report = self.__startReportToMonitoringLoop()
+
+
     if multiprocess:
       server.start(0)
+      self._addInfoMultiprocess(tornado.process.task_id())
+      tornado.ioloop.PeriodicCallback(self.__reportToMonitoring, 60000).start() #every minute
       IOLoop.current().start()
     else:
+      tornado.ioloop.PeriodicCallback(self.__reportToMonitoring, 60000).start()
       IOLoop.instance().start()
     return True #Never called because of IOLoop, but to make pylint happy
 
-  # def _initMonitoring(self):
-  #   # Init extra bits of monitoring
-  #
 
-  #   self._monitor.setComponentType(MonitoringClient.COMPONENT_WEB)  # ADD COMPONENT TYPE FOR TORNADO ?
-  #   self._monitor.initialize()
 
-  #   self._monitor.registerActivity("Queries", "Queries served", "Framework", "queries", MonitoringClient.OP_RATE)
-  #   self._monitor.registerActivity('CPU', "CPU Usage", 'Framework', "CPU,%", MonitoringClient.OP_MEAN, 600)
-  #   self._monitor.registerActivity('MEM', "Memory Usage", 'Framework', 'Memory,MB', MonitoringClient.OP_MEAN, 600)
+  def _initMonitoring(self):
+    # Init extra bits of monitoring
+  
+    self._monitor.setComponentType(MonitoringClient.COMPONENT_WEB)  # ADD COMPONENT TYPE FOR TORNADO ?
+    self._monitor.initialize()
+    self._monitor.setComponentName('Tornado')
 
-  #   self._monitor.setComponentExtraParam('DIRACVersion', DIRAC.version)
-  #   self._monitor.setComponentExtraParam('platform', DIRAC.getPlatform())
-  #   self._monitor.setComponentExtraParam('startTime', Time.dateTime())
+    self._monitor.registerActivity('CPU', "CPU Usage", 'Framework', "CPU,%", MonitoringClient.OP_MEAN, 600)
+    self._monitor.registerActivity('MEM', "Memory Usage", 'Framework', 'Memory,MB', MonitoringClient.OP_MEAN, 600)
 
-  #   return S_OK()
+    self._monitor.setComponentExtraParam('DIRACVersion', DIRAC.version)
+    self._monitor.setComponentExtraParam('platform', DIRAC.getPlatform())
+    self._monitor.setComponentExtraParam('startTime', Time.dateTime())
+    return S_OK()
+
+  def _addInfoMultiprocess(self, IdCPU):
+    #self._monitor.setComponentExtraParam('CPUId', IdCPU)
+    pass
+
+
+
+  def __reportToMonitoring(self):
+    """
+      *Called every minute*
+      Every minutes we determine CPU and Memory usage
+    """
+
+    # Calculate CPU usage by comparing realtime and cpu time since last report
+    self.__endReportToMonitoringLoop(*self.__report)
+
+    # Save memory usage and save realtime/CPU time for next call
+    self.__report = self.__startReportToMonitoringLoop()
+
+
+  def __startReportToMonitoringLoop( self ):
+    """
+      Get time to prepare CPU usage monitoring and send memory usage to monitor
+    """
+    now = time.time()
+    stats = os.times()
+    cpuTime = stats[0] + stats[2]
+    if now - self.__monitorLastStatsUpdate < 0:
+      return ( now, cpuTime )
+    # Send CPU consumption mark
+    wallClock = now - self.__monitorLastStatsUpdate
+    self.__monitorLastStatsUpdate = now
+    # Send Memory consumption mark
+    membytes = MemStat.VmB( 'VmRSS:' )
+    if membytes:
+      mem = membytes / ( 1024. * 1024. )
+      self._monitor.addMark( 'MEM', mem )
+    return ( now, cpuTime )
+
+  def __endReportToMonitoringLoop( self, initialWallTime, initialCPUTime ):
+    """
+      Determine CPU usage and send it to monitor
+    """
+    wallTime = time.time() - initialWallTime
+    stats = os.times()
+    cpuTime = stats[0] + stats[2] - initialCPUTime
+    percentage = cpuTime / wallTime * 100.
+    if percentage > 0:
+      self._monitor.addMark( 'CPU', percentage )
