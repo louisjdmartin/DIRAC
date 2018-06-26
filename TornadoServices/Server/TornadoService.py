@@ -32,6 +32,9 @@ from tornado import gen
 import tornado.ioloop
 from tornado.ioloop import IOLoop
 
+from DIRAC.TornadoServices.Utilities.b64Tornado import strDictTob64Dict, b64ListTostrList
+
+import DIRAC
 from DIRAC.Core.Security.X509Chain import X509Chain
 from DIRAC.Core.DISET.AuthManager import AuthManager
 from DIRAC.Core.DISET.private.ServiceConfiguration import ServiceConfiguration
@@ -42,8 +45,8 @@ from DIRAC import S_OK, S_ERROR, gLogger
 from DIRAC.Core.Utilities import MemStat
 from DIRAC.Core.Utilities.DErrno import ENOAUTH
 from DIRAC import gConfig
-import DIRAC
 from DIRAC.FrameworkSystem.Client.MonitoringClient import MonitoringClient
+from DIRAC.ConfigurationSystem.Client.PathFinder import getServiceURL
 
 
 
@@ -54,6 +57,11 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     Instanciated at each request
   """
   __FLAG_INIT_DONE = False
+
+  # MonitoringClient, we don't use gMonitor which is not thread-safe
+  # We also need to add specific attributes for each service
+  _monitor = None
+
 
   @classmethod
   def flush_monitor(cls):
@@ -66,6 +74,7 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
 
     # Init extra bits of monitoring
   
+    cls._monitor = MonitoringClient()
     cls._monitor.setComponentType(MonitoringClient.COMPONENT_WEB)  # ADD COMPONENT TYPE FOR TORNADO ?
 
 
@@ -84,7 +93,7 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
 
     cls._monitor.setComponentExtraParam('DIRACVersion', DIRAC.version)
     cls._monitor.setComponentExtraParam('platform', DIRAC.getPlatform())
-    cls._monitor.setComponentExtraParam('startTime', datetime.now())
+    cls._monitor.setComponentExtraParam('startTime', datetime.utcnow())
 
 
     cls._stats = {'requests': 0, 'monitorLastStatsUpdate': time.time()}
@@ -93,7 +102,7 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
 
 
   @classmethod
-  def __initializeService(cls, url, debug):
+  def __initializeService(cls, url, fullUrl, debug):
     """
       Initialize a service, called at first request
     """
@@ -105,12 +114,11 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
 
     cls.debug = debug
     cls.log = gLogger
-    cls._startTime = datetime.now()
+    cls._startTime = datetime.utcnow()
     cls.log.info("First use of %s, initializing service..." % url)
     cls._authManager = AuthManager("%s/Authorization" % PathFinder.getServiceSection(serviceName))
     cls._cfg = ServiceConfiguration([serviceName])
 
-    cls._monitor = MonitoringClient()
     cls._initMonitoring(serviceName)
 
     cls._serviceName = serviceName
@@ -118,7 +126,7 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     serviceInfo = {'serviceName': serviceName,
                    'serviceSectionPath': PathFinder.getServiceSection(serviceName),
                    'csPaths': [PathFinder.getServiceSection(serviceName)],
-                   'URL': url
+                   'URL': fullUrl 
                   }
     cls._serviceInfoDict = serviceInfo
 
@@ -170,7 +178,7 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     self.authorized = False
     self.method = None
     if not self.__FLAG_INIT_DONE:
-      init = self.__initializeService(self.srv_getURL(), debug)
+      init = self.__initializeService(self.srv_getURL(), self.request.full_url(), debug)
       if not init['OK']:
         gLogger.debut("Error during initalization")
         gLogger.debug(init)
@@ -190,7 +198,9 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
 
     # Init of service must be here, because if it crash we should be able to end request
     if not self.__FLAG_INIT_DONE:
-      self.write(encode("Service can't be initialized !"))
+      error = encode("Service can't be initialized !")
+      del error['CallStack']
+      self.write_return(error)
       self.finish()
 
     self.credDict = self.gatherPeerCredentials()
@@ -218,7 +228,7 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     retVal = yield IOLoop.current().run_in_executor(None, self.__executeMethod)
    
     # Tornado recommend to write in main thread
-    self.write(retVal.result())
+    self.write_return(retVal.result())
     self.finish()
 
   @gen.coroutine
@@ -236,7 +246,8 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
       args_encoded = self.get_body_argument('args')
     except MissingArgumentError:
       args = []
-    args = decode(args_encoded)[0]
+    
+    args = b64ListTostrList(decode(args_encoded)[0])
 
     #Execute
     try:
@@ -244,13 +255,10 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
       retVal = method(*args)
     except Exception as e:#pylint: disable=broad-except
       retVal = S_ERROR(e)
-    # Trying to encode results
-    try:
-      encoded_result = encode(retVal)
-    except TypeError as e:
-      encoded_result = encode(S_ERROR("Encode error ! Returned value look non-encodable in JSON"))
+   
+    return retVal
 
-    return encoded_result
+
 
 
   def reportUnauthorizedAccess(self, errorCode=403):
@@ -275,7 +283,7 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     # 401 is the error code for "Unauthorized" in HTTP
     # 403 is the error code for "Forbidden" in HTTP
     self.set_status(errorCode)
-    self.write(encode(error))
+    self.write_return(error)
     self.finish()
 
   def on_finish(self):
@@ -284,6 +292,16 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     """
     requestDuration = time.time() - self.requestStartTime
     gLogger.notice("Ending request to %s after %fs" % (self.srv_getURL(), requestDuration))
+
+
+  def write_return(self, dictionnary):
+    """
+      Write to client what we wan't to return to client, must be S_OK/S_ERROR
+    """
+    if not isinstance(dictionnary, dict):
+      dictionnary = S_ERROR('Service returns incorrect type')
+      del dictionnary['CallStack']
+    self.write(encode(strDictTob64Dict(dictionnary)))
 
   def gatherPeerCredentials(self):
     """
@@ -339,7 +357,7 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     # COPY FROM DIRAC.Core.DISET.RequestHandler
     dInfo = {}
     dInfo['version'] = DIRAC.version
-    dInfo['time'] = datetime.now()
+    dInfo['time'] = datetime.utcnow()
     # Uptime
     try:
       with open("/proc/uptime") as oFD:
@@ -349,7 +367,7 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
       pass
     startTime = self._startTime
     dInfo['service start time'] = self._startTime
-    serviceUptime = datetime.now() - startTime
+    serviceUptime = datetime.utcnow() - startTime
     dInfo['service uptime'] = serviceUptime.days * 3600 + serviceUptime.seconds
     # Load average
     try:

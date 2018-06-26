@@ -11,14 +11,16 @@ from socket import error as socketerror
 import M2Crypto
 
 # Patching -- Should disable pylint wrong-import-position...
-from tornado_m2crypto.m2netutil import m2_wrap_socket # pylint: disable=wrong-import-position
-import tornado.netutil # pylint: disable=wrong-import-position
-tornado.netutil.ssl_wrap_socket = m2_wrap_socket # pylint: disable=wrong-import-position
+from tornado_m2crypto.m2netutil import m2_wrap_socket  # pylint: disable=wrong-import-position
+import tornado.netutil  # pylint: disable=wrong-import-position
+tornado.netutil.ssl_wrap_socket = m2_wrap_socket  # pylint: disable=wrong-import-position
 
-import tornado.httputil # pylint: disable=wrong-import-position
-tornado.httputil.HTTPServerRequest.configure('tornado_m2crypto.m2httputil.M2HTTPServerRequest') # pylint: disable=wrong-import-position
-import tornado.iostream # pylint: disable=wrong-import-position
-tornado.iostream.SSLIOStream.configure('tornado_m2crypto.m2iostream.M2IOStream') # pylint: disable=wrong-import-position
+import tornado.httputil  # pylint: disable=wrong-import-position
+tornado.httputil.HTTPServerRequest.configure(
+    'tornado_m2crypto.m2httputil.M2HTTPServerRequest')  # pylint: disable=wrong-import-position
+import tornado.iostream  # pylint: disable=wrong-import-position
+tornado.iostream.SSLIOStream.configure(
+    'tornado_m2crypto.m2iostream.M2IOStream')  # pylint: disable=wrong-import-position
 
 from tornado.httpserver import HTTPServer
 from tornado.web import Application, url
@@ -31,11 +33,6 @@ from DIRAC import gLogger, S_ERROR, S_OK
 from DIRAC.FrameworkSystem.Client.MonitoringClient import MonitoringClient
 from DIRAC.Core.Security import Locations
 from DIRAC.Core.Utilities import Time, MemStat
-
-
-
-
-
 
 
 class TornadoServer(object):
@@ -77,6 +74,7 @@ class TornadoServer(object):
     self.port = port
     self.handlerManager = HandlerManager()
     self._monitor = MonitoringClient()
+    self.__monitoringLoopDelay = 60 #In secs
 
     # If services are defined, load only these ones (useful for debug purpose)
     if services and services != []:
@@ -99,7 +97,7 @@ class TornadoServer(object):
     self._initMonitoring()
 
     if self.debug:
-      gLogger.warn("TORNADO use debug mode, autoreload can generate unexpected effects, use it only in dev")
+      gLogger.warn("Server is running in debug mode")
 
     router = Application(self.urls, debug=self.debug)
 
@@ -112,7 +110,7 @@ class TornadoServer(object):
         'keyfile': certs[1],
         'cert_reqs': M2Crypto.SSL.verify_peer,
         'ca_certs': ca,
-        'sslDebug' : self.debug
+        'sslDebug': self.debug
     }
 
     # Start server
@@ -132,22 +130,19 @@ class TornadoServer(object):
     self.__monitorLastStatsUpdate = time.time()
     self.__report = self.__startReportToMonitoringLoop()
 
-
     if multiprocess:
       server.start(0)
       self._addInfoMultiprocess(tornado.process.task_id())
-      tornado.ioloop.PeriodicCallback(self.__reportToMonitoring, 60000).start() #every minute
+      tornado.ioloop.PeriodicCallback(self.__reportToMonitoring, self.__monitoringLoopDelay*1000).start()  # every minute
       IOLoop.current().start()
     else:
-      tornado.ioloop.PeriodicCallback(self.__reportToMonitoring, 60000).start()
+      tornado.ioloop.PeriodicCallback(self.__reportToMonitoring, self.__monitoringLoopDelay*1000).start()
       IOLoop.instance().start()
-    return True #Never called because of IOLoop, but to make pylint happy
-
-
+    return True  # Never called because of IOLoop, but to make pylint happy
 
   def _initMonitoring(self):
     # Init extra bits of monitoring
-  
+
     self._monitor.setComponentType(MonitoringClient.COMPONENT_WEB)  # ADD COMPONENT TYPE FOR TORNADO ?
     self._monitor.initialize()
     self._monitor.setComponentName('Tornado')
@@ -164,8 +159,6 @@ class TornadoServer(object):
     #self._monitor.setComponentExtraParam('CPUId', IdCPU)
     pass
 
-
-
   def __reportToMonitoring(self):
     """
       *Called every minute*
@@ -178,8 +171,7 @@ class TornadoServer(object):
     # Save memory usage and save realtime/CPU time for next call
     self.__report = self.__startReportToMonitoringLoop()
 
-
-  def __startReportToMonitoringLoop( self ):
+  def __startReportToMonitoringLoop(self):
     """
       Get time to prepare CPU usage monitoring and send memory usage to monitor
     """
@@ -187,24 +179,24 @@ class TornadoServer(object):
     stats = os.times()
     cpuTime = stats[0] + stats[2]
     if now - self.__monitorLastStatsUpdate < 0:
-      return ( now, cpuTime )
+      return (now, cpuTime)
     # Send CPU consumption mark
     wallClock = now - self.__monitorLastStatsUpdate
     self.__monitorLastStatsUpdate = now
     # Send Memory consumption mark
-    membytes = MemStat.VmB( 'VmRSS:' )
+    membytes = MemStat.VmB('VmRSS:')
     if membytes:
-      mem = membytes / ( 1024. * 1024. )
-      self._monitor.addMark( 'MEM', mem )
-    return ( now, cpuTime )
+      mem = membytes / (1024. * 1024.)
+      self._monitor.addMark('MEM', mem)
+    return (now, cpuTime)
 
-  def __endReportToMonitoringLoop( self, initialWallTime, initialCPUTime ):
+  def __endReportToMonitoringLoop(self, initialWallTime, initialCPUTime):
     """
-      Determine CPU usage and send it to monitor
+      Determine CPU usage by comparing walltime and cputime and send it to monitor
     """
     wallTime = time.time() - initialWallTime
     stats = os.times()
     cpuTime = stats[0] + stats[2] - initialCPUTime
     percentage = cpuTime / wallTime * 100.
     if percentage > 0:
-      self._monitor.addMark( 'CPU', percentage )
+      self._monitor.addMark('CPU', percentage)

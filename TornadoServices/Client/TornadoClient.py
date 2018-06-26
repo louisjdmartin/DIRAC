@@ -25,6 +25,8 @@
 
 from DIRAC.Core.Utilities.JEncode import encode
 from DIRAC.TornadoServices.Client.private.TornadoBaseClient import TornadoBaseClient
+from DIRAC.TornadoServices.Utilities.b64Tornado import b64DictTostrDict, strListTob64List
+
 
 
 class TornadoClient(TornadoBaseClient):
@@ -54,11 +56,14 @@ class TornadoClient(TornadoBaseClient):
       :param args: list of arguments
       :return: decoded response from server, server may return S_OK or S_ERROR
     """
+    if args:
+      args = strListTob64List(args)
     rpcCall = {'method': method, 'args': encode(args)}
     # Start request
-    retVal = self._request(rpcCall)
+    retVal = b64DictTostrDict(self._request(rpcCall))
     retVal['rpcStub'] = (self._getBaseStub(), method, args)
     return retVal
+
 
 
 def executeRPCStub(rpcStub):

@@ -5,7 +5,8 @@
     You must have 2 separate tornadohandlers and this services must be in dirac.cfg like normal service
     Only change: dips:// become https://
 """
-
+from DIRAC.Core.Base.Script import parseCommandLine
+parseCommandLine()
 
 from DIRAC.TornadoServices.Client.TornadoClient import TornadoClient
 

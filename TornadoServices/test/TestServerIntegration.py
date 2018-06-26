@@ -30,7 +30,8 @@
 
 """
 
-
+from DIRAC.Core.Base.Script import parseCommandLine
+parseCommandLine()
 from string import printable
 import datetime
 import sys

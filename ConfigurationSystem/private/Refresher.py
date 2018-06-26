@@ -158,7 +158,8 @@ class Refresher(threading.Thread):
     gLogger.debug("Randomized server list is %s" % ", ".join(randomServerList))
 
     for sServer in randomServerList:
-      from DIRAC.Core.DISET.RPCClient import RPCClient
+      #from DIRAC.Core.DISET.RPCClient import RPCClient
+      from DIRAC.TornadoServices.Client.RPCClientSelector import RPCClientSelector as RPCClient
       oClient = RPCClient(sServer,
                           useCertificates=gConfigurationData.useServerCertificate(),
                           skipCACheck=gConfigurationData.skipCACheck())

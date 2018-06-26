@@ -36,7 +36,7 @@ parametrize = mark.parametrize
 testCfgFileName = 'test.cfg'
 
 
-@fixture()
+@fixture(scope='function')
 def config(request):
   """
     fixture is the pytest way to declare initalization function.
@@ -82,26 +82,26 @@ def config(request):
   with open(testCfgFileName, 'w') as f:
     f.write(cfgContent)
   gConfig = ConfigurationClient(fileToLoadList=[testCfgFileName])  # we replace the configuration by our own one.
-  setup = gConfig.getValue('/DIRAC/Setup', '')
-  wm = gConfig.getValue('DIRAC/Setups/' + setup + '/WorkloadManagement', '')
 
-  def tearDown():
-    """
-      This function is called at the end of the test.
-    """
-    try:
-      os.remove(testCfgFileName)
-    except OSError:
-      pass
-    # SUPER UGLY: one must recreate the CFG objects of gConfigurationData
-    # not to conflict with other tests that might be using a local dirac.cfg
-    gConfigurationData.localCFG = CFG()
-    gConfigurationData.remoteCFG = CFG()
-    gConfigurationData.mergedCFG = CFG()
-    gConfigurationData.generateNewVersion()
-
+  #def tearDown():
+  # Wait for teardown
+  yield config
+  """
+    This function is called at the end of the test.
+  """
+  try:
+    os.remove(testCfgFileName)
+  except OSError:
+    pass
+  # SUPER UGLY: one must recreate the CFG objects of gConfigurationData
+  # not to conflict with other tests that might be using a local dirac.cfg
+  gConfigurationData.localCFG = CFG()
+  gConfigurationData.remoteCFG = CFG()
+  gConfigurationData.mergedCFG = CFG()
+  gConfigurationData.generateNewVersion()
+  print "TearDown"
   # request is given by @fixture decorator, addfinalizer set the function who need to be called after the tests
-  request.addfinalizer(tearDown)
+  #request.addfinalizer(tearDown)
 
 ## Tuple with (expectedClient, serviceName)
 client_imp = (

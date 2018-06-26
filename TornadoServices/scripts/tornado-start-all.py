@@ -25,8 +25,8 @@ localCfg.addMandatoryEntry("/DIRAC/Setup")
 localCfg.addDefaultEntry("LogLevel", "INFO")
 localCfg.addDefaultEntry("LogColor", True)
 resultDict = localCfg.loadUserData()
+gLogger.initialize('Tornado', "/")
 if not resultDict['OK']:
-  gLogger.initialize(serverName, "/")
   gLogger.error("There were errors when loading configuration", resultDict['Message'])
   sys.exit(1)
 

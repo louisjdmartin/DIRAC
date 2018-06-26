@@ -55,7 +55,7 @@ class HandlerManager(object):
 
       # We add "/" if missing at begin, e.g. we found "Framework/Service"
       # URL can't be relative in Tornado
-      if url and url.startswith('/'):
+      if url and not url.startswith('/'):
         url = "/%s" % url
       elif not url:
         gLogger.warn("URL not found for %s" % (handlerTuple[0]))
@@ -87,9 +87,12 @@ class HandlerManager(object):
           for service in services['Value']:
             newservice = ("%s/%s" % (system, service))
             newserviceurl = getServiceURL(newservice) 
-            if newserviceurl.startswith('http'):
-              serviceList.append(newservice)
 
+            #print '\n\n/Systems/%s/%s/Services/%s/Tornado' % (system, instance, service)
+            isTornado = gConfig.getValue('/Systems/%s/%s/Services/%s/Tornado' % (system, instance, service))
+            if isTornado and isTornado.lower() in ('y', 'yes', 'true'):
+              serviceList.append(newservice)
+    #print serviceList
     self.loadHandlersByServiceName(serviceList)
 
 
@@ -109,7 +112,8 @@ class HandlerManager(object):
     load = self.loader.loadModules(servicesNames)
     if load['OK']:
       for module in self.loader.getModules().values():
-        url = getServiceURL(module['loadName']) 
+        url = module['loadName']
+
         serviceTuple = url.replace('https://', '').split('/')[-2:]
         url = "%s/%s" % (serviceTuple[0], serviceTuple[1])
         self.__addHandler((module['loadName'], module['classObj']), url)

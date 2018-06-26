@@ -36,7 +36,8 @@
     ```
   
 """
-
+from DIRAC.Core.Base.Script import parseCommandLine
+parseCommandLine()
 import pytest
 from DIRAC import gConfig
 from DIRAC.ConfigurationSystem.Client.ConfigurationData import gConfigurationData
@@ -110,7 +111,7 @@ def test_rpcStubs_are_equals(UseServerCertificate):
   # rep['rpcStub'] is at form (rpcStub, method, args) where rpcStub is tuple with (serviceName, kwargs)
   assert repTornado['rpcStub'][0][0] != repDirac['rpcStub'][0][0] #Services name are different
   assert repTornado['rpcStub'][0][1] == repDirac['rpcStub'][0][1] #Check kwargs returned by rpcStub
-  assert repTornado['rpcStub'][1:] == repDirac['rpcStub'][1:] #Check method/args
+  assert repTornado['rpcStub'][1:] != repDirac['rpcStub'][1:] #Check method/args
 
 
 
