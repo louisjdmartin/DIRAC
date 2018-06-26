@@ -466,6 +466,13 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     :return: Credentials dictionary of remote peer.
     """
     return self.credDict
+  def getRemoteCredentials(self):
+    """
+    Get the credentials of the remote peer.
+
+    :return: Credentials dictionary of remote peer.
+    """
+    return self.credDict
 
   def srv_getFormattedRemoteCredentials(self):
     """
