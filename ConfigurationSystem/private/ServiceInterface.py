@@ -14,7 +14,9 @@ from DIRAC.ConfigurationSystem.Client.ConfigurationData import gConfigurationDat
 from DIRAC.ConfigurationSystem.private.Refresher import gRefresher
 from DIRAC.FrameworkSystem.Client.Logger import gLogger
 from DIRAC.Core.Utilities.ReturnValues import S_OK, S_ERROR
-from DIRAC.Core.DISET.RPCClient import RPCClient
+##from DIRAC.Core.DISET.RPCClient import RPCClient
+## Louis
+from DIRAC.TornadoServices.Client.SpecificClient.ConfigurationClient import ConfigurationClient as RPCClient
 
 __RCSID__ = "$Id$"
 

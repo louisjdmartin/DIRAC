@@ -12,6 +12,5 @@ print 42*"="
 if not tree['OK']:
   print tree['Message']
 else:
-  print tree
   for key in tree['Value']:
     print key, tree['Value'][key]

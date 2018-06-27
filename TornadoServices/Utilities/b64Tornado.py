@@ -1,6 +1,6 @@
 """
   Little utilities for tornado client and server to encode payload in base64
-  So encoding is not a problem when sending data
+  It may be used by specificClients (like DIRAC.TornadoServices.Client.SpecificClient.ConfigurationClient)
 """
 
 

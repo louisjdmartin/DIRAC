@@ -481,10 +481,6 @@ class TornadoBaseClient(object):
     else:
       cert = self.__proxy_location
 
-    # print "==================================================="
-    # print "Certificat client: \t%s\nCA: \t\t\t%s" % (cert, verify)
-    # print "==================================================="
-    # print postArguments
     # Do the request
     try:
       call = requests.post(url, data=postArguments, timeout=self.timeout, verify=verify,
@@ -495,7 +491,7 @@ class TornadoBaseClient(object):
         self.__bannedUrls += [url]
       if retry < self.__nbOfUrls - 1:
         self._request(postArguments, retry + 1)
-      return S_ERROR(e)
+      return S_ERROR(str(e))
 
 
 

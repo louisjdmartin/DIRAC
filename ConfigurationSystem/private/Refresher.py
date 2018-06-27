@@ -83,6 +83,8 @@ class Refresher(threading.Thread):
         pass
     # Launch the refresh
     thd = threading.Thread(target=self.__refreshInThread)
+    # LOUIS
+    print "SETTING DAEMON"
     thd.setDaemon(1)
     thd.start()
 
@@ -100,6 +102,7 @@ class Refresher(threading.Thread):
       DIRAC.abort(10, "Missing configuration name!")
     self.__url = sURL
     self.__automaticUpdate = True
+    print "SETTING DAEMON - autoRefreshAndPublish"
     self.setDaemon(1)
     self.start()
 
@@ -114,7 +117,9 @@ class Refresher(threading.Thread):
   def __refreshAndPublish(self):
     self.__lastUpdateTime = time.time()
     gLogger.info("Refreshing from master server")
-    from DIRAC.Core.DISET.RPCClient import RPCClient
+    #from DIRAC.Core.DISET.RPCClient import RPCClient
+    ## LOUIS TESTING
+    from DIRAC.TornadoServices.Client.SpecificClient.ConfigurationClient import ConfigurationClient as RPCClient
     sMasterServer = gConfigurationData.getMasterServer()
     if sMasterServer:
       oClient = RPCClient(sMasterServer, timeout=self.__timeout,
@@ -158,8 +163,11 @@ class Refresher(threading.Thread):
     gLogger.debug("Randomized server list is %s" % ", ".join(randomServerList))
 
     for sServer in randomServerList:
+      ## LOUIS TESTING
       #from DIRAC.Core.DISET.RPCClient import RPCClient
-      from DIRAC.TornadoServices.Client.RPCClientSelector import RPCClientSelector as RPCClient
+      #from DIRAC.TornadoServices.Client.RPCClientSelector import RPCClientSelector as RPCClient
+      # For now there is no selection, it works only in http
+      from DIRAC.TornadoServices.Client.SpecificClient.ConfigurationClient import ConfigurationClient as RPCClient
       oClient = RPCClient(sServer,
                           useCertificates=gConfigurationData.useServerCertificate(),
                           skipCACheck=gConfigurationData.skipCACheck())
@@ -174,6 +182,7 @@ class Refresher(threading.Thread):
     return S_ERROR("Reason(s):\n\t%s" % "\n\t".join(List.uniqueElements(updatingErrorsList)))
 
   def daemonize(self):
+    print "\n\n\n\nLOUIS daemonize\n\n\n\n"
     self.setDaemon(1)
     self.start()
 
@@ -182,4 +191,5 @@ gRefresher = Refresher()
 
 if __name__ == "__main__":
   time.sleep(0.1)
+  print "SETTING DAEMON"
   gRefresher.daemonize()

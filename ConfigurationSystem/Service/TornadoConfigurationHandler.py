@@ -1,4 +1,9 @@
 """ The CS! (Configuration Service)
+
+  Modified to work with Tornado
+  Encode data in base64 because of JSON limitations
+  In client side you must use a specific client
+
 """
 
 __RCSID__ = "$Id$"
@@ -7,7 +12,7 @@ from DIRAC.Core.Utilities.ReturnValues import S_OK, S_ERROR
 from DIRAC.ConfigurationSystem.private.ServiceInterface import ServiceInterface
 from DIRAC.Core.Utilities import DErrno
 from DIRAC.TornadoServices.Server.TornadoService import TornadoService
-
+from base64 import b64encode
 gServiceInterface = None
 gPilotSynchronizer = None
 
@@ -20,43 +25,46 @@ class TornadoConfigurationHandler(TornadoService):
 
   @classmethod
   def initializeHandler(cls, serviceInfo):
+    """
+      Initialize the configuration server
+      Behind it start thread who refresh configuration
+    """
     global gServiceInterface
     gServiceInterface = ServiceInterface(serviceInfo['URL'])
     return S_OK()
 
-  types_getVersion = []
 
   def export_getVersion(self):
     return S_OK(gServiceInterface.getVersion())
 
-  types_getCompressedData = []
 
   def export_getCompressedData(self):
+    """
+      
+    """
     sData = gServiceInterface.getCompressedConfigurationData()
-    return S_OK(sData)
+    return strDictTob64Dict(S_OK(b64encode(sData)))
 
-  types_getCompressedDataIfNewer = [basestring]
 
   def export_getCompressedDataIfNewer(self, sClientVersion):
     sVersion = gServiceInterface.getVersion()
     retDict = {'newestVersion': sVersion}
     if sClientVersion < sVersion:
-      retDict['data'] = gServiceInterface.getCompressedConfigurationData()
+      retDict['data'] = b64encode(gServiceInterface.getCompressedConfigurationData())
     return S_OK(retDict)
 
-  types_publishSlaveServer = [basestring]
 
   def export_publishSlaveServer(self, sURL):
     gServiceInterface.publishSlaveServer(sURL)
     return S_OK()
 
-  types_commitNewData = [basestring]
 
   def export_commitNewData(self, sData):
     global gPilotSynchronizer
     credDict = self.getRemoteCredentials()
     if 'DN' not in credDict or 'username' not in credDict:
       return S_ERROR("You must be authenticated!")
+    sData = b64decode(sData)
     res = gServiceInterface.updateConfiguration(sData, credDict['username'])
     if not res['OK']:
       return res
@@ -76,12 +84,10 @@ class TornadoConfigurationHandler(TornadoService):
 
     return res
 
-  types_writeEnabled = []
 
   def export_writeEnabled(self):
     return S_OK(gServiceInterface.isMaster())
 
-  types_getCommitHistory = []
 
   def export_getCommitHistory(self, limit=100):
     if limit > 100:
@@ -91,7 +97,6 @@ class TornadoConfigurationHandler(TornadoService):
       history = history[:limit]
     return S_OK(history)
 
-  types_getVersionContents = [list]
 
   def export_getVersionContents(self, versionList):
     contentsList = []
@@ -103,7 +108,6 @@ class TornadoConfigurationHandler(TornadoService):
         return S_ERROR("Can't get contents for version %s: %s" % (version, retVal['Message']))
     return S_OK(contentsList)
 
-  types_rollbackToVersion = [basestring]
 
   def export_rollbackToVersion(self, version):
     retVal = gServiceInterface.getVersionContents(version)

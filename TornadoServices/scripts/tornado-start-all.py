@@ -17,7 +17,12 @@ localCfg = LocalConfiguration()
 
 debug = '--debug' in sys.argv
 multiprocess = '--multiprocess' in sys.argv
-
+port = 443
+if len(sys.argv)>1:
+  try:
+    port = int(sys.argv[1])
+  except ValueError:
+    pass
 
 
 localCfg.addMandatoryEntry("/DIRAC/Setup")
@@ -33,5 +38,5 @@ if not resultDict['OK']:
 includeExtensionErrors()
 
 
-serverToLaunch = TornadoServer(debug=debug)
+serverToLaunch = TornadoServer(debug=debug, port=port)
 serverToLaunch.startTornado(multiprocess=multiprocess)

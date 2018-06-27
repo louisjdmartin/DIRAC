@@ -32,7 +32,6 @@ from tornado import gen
 import tornado.ioloop
 from tornado.ioloop import IOLoop
 
-from DIRAC.TornadoServices.Utilities.b64Tornado import strDictTob64Dict, b64ListTostrList
 
 import DIRAC
 from DIRAC.Core.Security.X509Chain import X509Chain
@@ -47,6 +46,8 @@ from DIRAC.Core.Utilities.DErrno import ENOAUTH
 from DIRAC import gConfig
 from DIRAC.FrameworkSystem.Client.MonitoringClient import MonitoringClient
 from DIRAC.ConfigurationSystem.Client.PathFinder import getServiceURL
+from DIRAC.TornadoServices.Utilities import HTTPErrorCodes
+import threading
 
 
 
@@ -170,6 +171,7 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
       WARNING: DO NOT REWRITE THIS FUNCTION IN YOUR HANDLER
           ==> initialize in DISET became initializeRequest in HTTPS !
     """
+    print threading.active_count()
     self.debug = debug
     self.authorized = False
     self.method = None
@@ -189,6 +191,7 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     #self._monitor.setComponentName(self.srv_getURL())
     self._monitor.setComponentExtraParam('queries', self._stats['requests'])
     self._monitor.addMark("Queries")
+    self._httpError = HTTPErrorCodes.HTTP_OK
 
     
   def prepare(self):
@@ -200,7 +203,7 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     if not self.__FLAG_INIT_DONE:
       error = encode("Service can't be initialized !")
       del error['CallStack']
-      self.write_return(error)
+      self.__write_return(error)
       self.finish()
 
     self.credDict = self.gatherPeerCredentials()
@@ -228,17 +231,25 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     retVal = yield IOLoop.current().run_in_executor(None, self.__executeMethod)
    
     # Tornado recommend to write in main thread
-    self.write_return(retVal.result())
+    self.__write_return(retVal.result())
     self.finish()
 
   @gen.coroutine
   def __executeMethod(self):
+    """
+      Execute the method called, this method is executed in an executor
+      We have several try except to catch the different problem who can occurs
+
+      - First, the method does not exist => Attribute error, return an error to client
+      - Second, no aguments are sended => MissingArgumentError, continue execution
+      - Third, anything happend during execution => General Exception, send error to client
+    """
 
     # getting method
     try:
       method = getattr(self, 'export_%s' % self.method)
     except AttributeError as e:
-      self.set_status(501)
+      self._httpError = HTTPErrorCodes.HTTP_NOT_IMPLEMENTED
       return S_ERROR("Unknown method %s" % self.method)
 
     #Decode args
@@ -247,21 +258,26 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     except MissingArgumentError:
       args = []
     
-    args = b64ListTostrList(decode(args_encoded)[0])
-
+    args = decode(args_encoded)[0]
     #Execute
     try:
       self.initializeRequest()
       retVal = method(*args)
     except Exception as e:#pylint: disable=broad-except
       retVal = S_ERROR(e)
+      self._httpError = HTTPErrorCodes.HTTP_INTERNAL_SERVER_ERROR
    
     return retVal
 
+  def __write_return(self, dictionnary):
+    """
+      Write to client what we wan't to return to client
+    """
+    self.set_status(self._httpError)
+    self.write(encode(dictionnary))
 
 
-
-  def reportUnauthorizedAccess(self, errorCode=403):
+  def reportUnauthorizedAccess(self, errorCode=HTTPErrorCodes.HTTP_FORBIDDEN):
     """
       This method stop the current request and return an error to client
       It uses HTTP 403 by default. 403 is used when authentication is done but you're not authorized
@@ -282,8 +298,8 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
 
     # 401 is the error code for "Unauthorized" in HTTP
     # 403 is the error code for "Forbidden" in HTTP
-    self.set_status(errorCode)
-    self.write_return(error)
+    self._httpError = errorCode
+    self.__write_return(error)
     self.finish()
 
   def on_finish(self):
@@ -294,14 +310,7 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     gLogger.notice("Ending request to %s after %fs" % (self.srv_getURL(), requestDuration))
 
 
-  def write_return(self, dictionnary):
-    """
-      Write to client what we wan't to return to client, must be S_OK/S_ERROR
-    """
-    if not isinstance(dictionnary, dict):
-      dictionnary = S_ERROR('Service returns incorrect type')
-      del dictionnary['CallStack']
-    self.write(encode(strDictTob64Dict(dictionnary)))
+  
 
   def gatherPeerCredentials(self):
     """
