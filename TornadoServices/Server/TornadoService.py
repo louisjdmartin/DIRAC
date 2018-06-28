@@ -26,8 +26,7 @@
 import os
 import time
 from datetime import datetime
-import concurrent.futures
-from tornado.web import RequestHandler, MissingArgumentError, asynchronous
+from tornado.web import RequestHandler, MissingArgumentError
 from tornado import gen
 import tornado.ioloop
 from tornado.ioloop import IOLoop
@@ -36,23 +35,16 @@ from tornado.ioloop import IOLoop
 import DIRAC
 from DIRAC.Core.Security.X509Chain import X509Chain
 from DIRAC.Core.DISET.AuthManager import AuthManager
-from DIRAC.Core.DISET.private.ServiceConfiguration import ServiceConfiguration
-from DIRAC.Core.DISET.private.LockManager import LockManager
 from DIRAC.ConfigurationSystem.Client import PathFinder
 from DIRAC.Core.Utilities.JEncode import decode, encode
 from DIRAC import S_OK, S_ERROR, gLogger
-from DIRAC.Core.Utilities import MemStat
 from DIRAC.Core.Utilities.DErrno import ENOAUTH
 from DIRAC import gConfig
 from DIRAC.FrameworkSystem.Client.MonitoringClient import MonitoringClient
-from DIRAC.ConfigurationSystem.Client.PathFinder import getServiceURL
 from DIRAC.TornadoServices.Utilities import HTTPErrorCodes
-import threading
 
 
-
-
-class TornadoService(RequestHandler): #pylint: disable=abstract-method
+class TornadoService(RequestHandler):  # pylint: disable=abstract-method
   """
     TornadoService main class, manage all tornado services
     Instanciated at each request
@@ -63,71 +55,57 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
   # We also need to add specific attributes for each service
   _monitor = None
 
-
   @classmethod
-  def flush_monitor(cls):
-    #For tests, force to send more often
-    cls._monitor.flush()
-
-
-  @classmethod
-  def _initMonitoring(cls, serviceName):
+  def _initMonitoring(cls, serviceName, fullUrl):
+    """
+      Init monitoring specific to service
+    """
 
     # Init extra bits of monitoring
-  
+
     cls._monitor = MonitoringClient()
     cls._monitor.setComponentType(MonitoringClient.COMPONENT_WEB)  # ADD COMPONENT TYPE FOR TORNADO ?
 
-
     cls._monitor.initialize()
 
-    if tornado.process.task_id() is None: # Single process mode
-      cls._monitor.setComponentName('Tornado/%s'%serviceName)
+    if tornado.process.task_id() is None:  # Single process mode
+      cls._monitor.setComponentName('Tornado/%s' % serviceName)
     else:
-      cls._monitor.setComponentName('Tornado/CPU%d/%s'%(tornado.process.task_id(), serviceName))
+      cls._monitor.setComponentName('Tornado/CPU%d/%s' % (tornado.process.task_id(), serviceName))
 
+    cls._monitor.setComponentLocation(fullUrl)
 
-    cls._monitor.setComponentLocation( cls._cfg.getURL() )
-
-    cls._monitor.registerActivity( "Queries", "Queries served", "Framework", "queries", MonitoringClient.OP_RATE )
-
+    cls._monitor.registerActivity("Queries", "Queries served", "Framework", "queries", MonitoringClient.OP_RATE)
 
     cls._monitor.setComponentExtraParam('DIRACVersion', DIRAC.version)
     cls._monitor.setComponentExtraParam('platform', DIRAC.getPlatform())
     cls._monitor.setComponentExtraParam('startTime', datetime.utcnow())
 
-
     cls._stats = {'requests': 0, 'monitorLastStatsUpdate': time.time()}
 
     return S_OK()
 
-
   @classmethod
-  def __initializeService(cls, url, fullUrl, debug):
+  def __initializeService(cls, relativeUrl, absoluteUrl, debug):
     """
       Initialize a service, called at first request
     """
-    serviceName = url[1:]
-
-    if debug: # In debug mode we force monitoring to send data every 10 seconds
-      tornado.ioloop.PeriodicCallback(cls.flush_monitor, 10000).start()
-    # if not in debug mode, MonitoringClient sends data himself
+    serviceName = relativeUrl[1:]
 
     cls.debug = debug
     cls.log = gLogger
     cls._startTime = datetime.utcnow()
-    cls.log.info("First use of %s, initializing service..." % url)
+    cls.log.info("First use of %s, initializing service..." % relativeUrl)
     cls._authManager = AuthManager("%s/Authorization" % PathFinder.getServiceSection(serviceName))
-    cls._cfg = ServiceConfiguration([serviceName])
 
-    cls._initMonitoring(serviceName)
+    cls._initMonitoring(serviceName, absoluteUrl)
 
     cls._serviceName = serviceName
     cls._validNames = [serviceName]
     serviceInfo = {'serviceName': serviceName,
                    'serviceSectionPath': PathFinder.getServiceSection(serviceName),
                    'csPaths': [PathFinder.getServiceSection(serviceName)],
-                   'URL': fullUrl 
+                   'URL': absoluteUrl
                   }
     cls._serviceInfoDict = serviceInfo
 
@@ -136,19 +114,14 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     try:
       cls.initializeHandler(serviceInfo)
     # If anything happen during initialization, we return the error
-    except Exception as e: #pylint: disable=broad-except
+    except Exception as e:  # pylint: disable=broad-except
       gLogger.error(e)
       error = S_ERROR('Error while initializing')
 
-      if self.debug:
-        for stack in error['CallStack']:
-          gLogger.debug(stack)  # Display on log for debug, because removed when sended to client
       return error
 
     cls.__FLAG_INIT_DONE = True
     return S_OK()
-
-
 
   @classmethod
   def initializeHandler(cls, serviceInfoDict):
@@ -165,13 +138,12 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     """
     pass
 
-  def initialize(self, debug): #pylint: disable=arguments-differ
+  def initialize(self, debug):  # pylint: disable=arguments-differ
     """
       initialize, called at every request
       WARNING: DO NOT REWRITE THIS FUNCTION IN YOUR HANDLER
           ==> initialize in DISET became initializeRequest in HTTPS !
     """
-    print threading.active_count()
     self.debug = debug
     self.authorized = False
     self.method = None
@@ -182,18 +154,17 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     if not self.__FLAG_INIT_DONE:
       init = self.__initializeService(self.srv_getURL(), self.request.full_url(), debug)
       if not init['OK']:
-        gLogger.debut("Error during initalization")
+        gLogger.debug("Error during initalization")
         gLogger.debug(init)
         return False
 
-
     self._stats['requests'] += 1
-    #self._monitor.setComponentName(self.srv_getURL())
+    # self._monitor.setComponentName(self.srv_getURL())
     self._monitor.setComponentExtraParam('queries', self._stats['requests'])
     self._monitor.addMark("Queries")
     self._httpError = HTTPErrorCodes.HTTP_OK
+    return True
 
-    
   def prepare(self):
     """
       prepare
@@ -202,7 +173,6 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     # Init of service must be here, because if it crash we should be able to end request
     if not self.__FLAG_INIT_DONE:
       error = encode("Service can't be initialized !")
-      del error['CallStack']
       self.__write_return(error)
       self.finish()
 
@@ -219,7 +189,7 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
       self.reportUnauthorizedAccess()
 
   @gen.coroutine
-  def post(self): #pylint: disable=arguments-differ
+  def post(self):  # pylint: disable=arguments-differ
     """
     HTTP POST, used for RPC
       Call the remote method, client may send his method via "method" argument
@@ -229,7 +199,7 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     # Execute the method
     # None it's because we let Tornado manage the executor
     retVal = yield IOLoop.current().run_in_executor(None, self.__executeMethod)
-   
+
     # Tornado recommend to write in main thread
     self.__write_return(retVal.result())
     self.finish()
@@ -252,36 +222,42 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
       self._httpError = HTTPErrorCodes.HTTP_NOT_IMPLEMENTED
       return S_ERROR("Unknown method %s" % self.method)
 
-    #Decode args
+    # Decode args
     try:
       args_encoded = self.get_body_argument('args')
     except MissingArgumentError:
       args = []
-    
+
     args = decode(args_encoded)[0]
-    #Execute
+    # Execute
     try:
       self.initializeRequest()
       retVal = method(*args)
-    except Exception as e:#pylint: disable=broad-except
+    except Exception as e:  # pylint: disable=broad-except
       retVal = S_ERROR(e)
       self._httpError = HTTPErrorCodes.HTTP_INTERNAL_SERVER_ERROR
-   
+
     return retVal
 
   def __write_return(self, dictionnary):
     """
       Write to client what we wan't to return to client
+      It must be a dictionnary
     """
+
+    # In case of error in server side we hide server CallStack to client
+    # If Tornado is set to debug mode CallStack is send when error occured
+    if not self.debug and 'CallStack' in dictionnary:
+      del dictionnary['CallStack']
+
+    # Write error code before writing, by default error code is "200 OK"
     self.set_status(self._httpError)
     self.write(encode(dictionnary))
-
 
   def reportUnauthorizedAccess(self, errorCode=HTTPErrorCodes.HTTP_FORBIDDEN):
     """
       This method stop the current request and return an error to client
-      It uses HTTP 403 by default. 403 is used when authentication is done but you're not authorized
-      401 is used before authentication (or problem during authentication)
+
 
       :param int errorCode: Error code, 403 is "Forbidden" and 401 is "Unauthorized"
     """
@@ -292,12 +268,7 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
          self.credDict['CN'],
          self.credDict['DN'],
          self.request.remote_ip))
-    if "CallStack" in error:
-      # If blocked because not authorized, client did not need server-side CallStack
-      del error["CallStack"]
 
-    # 401 is the error code for "Unauthorized" in HTTP
-    # 403 is the error code for "Forbidden" in HTTP
     self._httpError = errorCode
     self.__write_return(error)
     self.finish()
@@ -308,9 +279,6 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     """
     requestDuration = time.time() - self.requestStartTime
     gLogger.notice("Ending request to %s after %fs" % (self.srv_getURL(), requestDuration))
-
-
-  
 
   def gatherPeerCredentials(self):
     """
@@ -348,7 +316,6 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
       if extraCred:
         credDict['extraCredentials'] = decode(extraCred)[0]
     return credDict
-
 
 
 ####
@@ -394,8 +361,6 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
                           'elapsed real time': stTimes[4]
                          }
 
-
-    #print "CHRIS ping return"
     return S_OK(dInfo)
 
   auth_echo = ['all']
@@ -411,27 +376,23 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
 
   def export_whoami(self):
     """
-      Default whoami method, returns credentialDictionnary
+      A simple whoami
     """
     credDict = self.srv_getRemoteCredentials()
     if 'x509Chain' in credDict:
-      del credDict['x509Chain']  # Not serializable
+      # Not serializable
+      del credDict['x509Chain']
     return S_OK(credDict)
 
-  def getConfig(self):
-    """ Return configuration
-    """
-    return self._cfg
 
 ####
 #
 #  Utilities methods
 #  From DIRAC.Core.DISET.requestHandler to get same interface
 #  Adapted for Tornado
-#  Some function return warning, it's for prevent forgots when porting service to tornado
-#  by "copy-paste" or just modify the imports
-#
+#   TODO : Some cleaning here
 ####
+
 
   @classmethod
   def srv_getCSOption(cls, optionName, defaultValue=False):
@@ -475,6 +436,7 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     :return: Credentials dictionary of remote peer.
     """
     return self.credDict
+
   def getRemoteCredentials(self):
     """
     Get the credentials of the remote peer.
@@ -492,33 +454,14 @@ class TornadoService(RequestHandler): #pylint: disable=abstract-method
     except KeyError:  # Called before reading certificate chain
       return "unknown"
 
-
   def srv_getServiceName(self):
     """
       Return the service name
     """
     return self._serviceInfoDict['serviceName']
 
-
-
-
   def srv_getURL(self):
     """
       Return the URL
     """
     return self.request.path
-
-
-
-def getServiceOption(serviceInfo, optionName, defaultValue):
-  """ Get service option resolving default values from the master service
-
-  WARNING: COPY PASTE FROM DIRAC/Core/DISET/RequestHandler.py
-  """
-  if optionName[0] == "/":
-    return gConfig.getValue(optionName, defaultValue)
-  for csPath in serviceInfo['csPaths']:
-    result = gConfig.getOption("%s/%s" % (csPath, optionName, ), defaultValue)
-    if result['OK']:
-      return result['Value']
-  return defaultValue

@@ -1,11 +1,13 @@
 """
-TornadoServer create a web server and load services. It may work better with TornadoClient but as it accepts HTTPS you can create your own client
+TornadoServer create a web server and load services.
+It may work better with TornadoClient but as it accepts HTTPS you can create your own client
 """
 
 __RCSID__ = "$Id$"
 
 
 import time
+import datetime
 import os
 from socket import error as socketerror
 import M2Crypto
@@ -32,7 +34,7 @@ from DIRAC.TornadoServices.Server.HandlerManager import HandlerManager
 from DIRAC import gLogger, S_ERROR, S_OK
 from DIRAC.FrameworkSystem.Client.MonitoringClient import MonitoringClient
 from DIRAC.Core.Security import Locations
-from DIRAC.Core.Utilities import Time, MemStat
+from DIRAC.Core.Utilities import MemStat
 
 
 class TornadoServer(object):
@@ -132,8 +134,7 @@ class TornadoServer(object):
 
     if multiprocess:
       server.start(0)
-      self._addInfoMultiprocess(tornado.process.task_id())
-      tornado.ioloop.PeriodicCallback(self.__reportToMonitoring, self.__monitoringLoopDelay*1000).start()  # every minute
+      tornado.ioloop.PeriodicCallback(self.__reportToMonitoring, self.__monitoringLoopDelay*1000).start()
       IOLoop.current().start()
     else:
       tornado.ioloop.PeriodicCallback(self.__reportToMonitoring, self.__monitoringLoopDelay*1000).start()
@@ -152,12 +153,9 @@ class TornadoServer(object):
 
     self._monitor.setComponentExtraParam('DIRACVersion', DIRAC.version)
     self._monitor.setComponentExtraParam('platform', DIRAC.getPlatform())
-    self._monitor.setComponentExtraParam('startTime', Time.dateTime())
+    self._monitor.setComponentExtraParam('startTime', datetime.datetime.utcnow())
     return S_OK()
 
-  def _addInfoMultiprocess(self, IdCPU):
-    #self._monitor.setComponentExtraParam('CPUId', IdCPU)
-    pass
 
   def __reportToMonitoring(self):
     """
@@ -181,7 +179,6 @@ class TornadoServer(object):
     if now - self.__monitorLastStatsUpdate < 0:
       return (now, cpuTime)
     # Send CPU consumption mark
-    wallClock = now - self.__monitorLastStatsUpdate
     self.__monitorLastStatsUpdate = now
     # Send Memory consumption mark
     membytes = MemStat.VmB('VmRSS:')

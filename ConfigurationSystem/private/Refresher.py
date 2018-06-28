@@ -1,5 +1,4 @@
 """ Refresh local CS (if needed)
-    In every gConfig
 """
 
 __RCSID__ = "$Id$"
@@ -34,6 +33,9 @@ def _updateFromRemoteLocation(serviceClient):
 class Refresher(threading.Thread):
 
   def __init__(self):
+
+    print "LOUIS INIT REFRESHER"
+
     threading.Thread.__init__(self)
     self.__automaticUpdate = False
     self.__lastUpdateTime = 0
@@ -186,7 +188,7 @@ class Refresher(threading.Thread):
     self.setDaemon(1)
     self.start()
 
-
+print "DEFINING GREFRESHER"
 gRefresher = Refresher()
 
 if __name__ == "__main__":
