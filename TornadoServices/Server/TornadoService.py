@@ -176,7 +176,14 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
       self.__write_return(error)
       self.finish()
 
-    self.credDict = self.gatherPeerCredentials()
+    try:
+      self.credDict = self.gatherPeerCredentials()
+    except Exception: 
+      # if an error occur when reading certificates
+      # it can be strange but the RFC, in HTTP, say's that when error happend 
+      # before authenfication we return 401 UNAUTHORIZED instead of 403 FORBIDDEN
+      self.reportUnauthorizedAccess(self, errorCode=HTTPErrorCodes.HTTP_UNAUTHORIZED)
+
     self.method = self.get_argument("method")
     self.log.notice("Incoming request on /%s: %s" % (self._serviceName, self.method))
     try:
