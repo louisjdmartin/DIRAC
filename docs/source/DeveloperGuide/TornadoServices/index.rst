@@ -31,7 +31,9 @@ Internal structure
 
 - :py:class:`~DIRAC.Core.DISET.ServiceReactor` is now :py:class:`~DIRAC.TornadoServices.Server.TornadoServer`
 - :py:class:`~DIRAC.Core.DISET.private.Service` and :py:class:`~DIRAC.Core.DISET.RequestHandler` are now merge into :py:class:`~DIRAC.TornadoServices.Server.TornadoService`
-- (to discuss) CallStack from S_ERROR are deleted for every error who happen before authentication.cd 
+- CallStack from S_ERROR are deleted for every error who happen before authentication.
+- Common config for all services, there is no more specific config/service
+- Server returns HTTP error codes like ``200 OK`` or ``401 Forbidden``. Not used by client for now but open possibility for usage with external services (like a REST API)
 
 How to write service
 ********************
@@ -57,12 +59,37 @@ Main changes in tornado are:
 - Service are initialized at first request
 - You **should not** write method called ``initialize`` because Tornado already use it, so the ``initialize`` from diset handlers became ``initialize_request``
 - infosDict, arguments of initializedHandler is not really the same as one from diset, all things relative to transport are removed, to write on the transport you can use self.write() but I recommend to avoid his usage, Tornado will encode and write what you return.
+- Variables likes ``types_yourMethod`` are ignored, but you can still define ``auth_yourMethod`` if you want.
 
 How to start server
 *******************
-The easy way, use ``DIRAC/TornadoService/script/tornado-start-all.py`` it will start all services registered in configuration !
+The easy way, use ``DIRAC/TornadoService/script/tornado-start-all.py`` it will start all services registered in configuration ! To register a service you just have to add the service in the CS and ``Tornado = True``. It may look like this::
 
-The configurable way::
+  Systems {
+    DevInstance
+    {
+      Tornado
+      {
+        Port = 443
+      }
+    }
+    Framework
+    {
+      DevInstance
+      {
+        Services
+        {
+          DummyTornado
+          {
+            Protocol = https
+          }
+        }
+      }
+    }
+  }
+
+
+But you can also control more settings by launching tornado yourself::
 
   from DIRAC.TornadoServices.Server.TornadoServer import TornadoServer
   serverToLaunch = TornadoServer(youroptions)
@@ -71,8 +98,8 @@ The configurable way::
 Options availlable are:
 
 - services, should be a list, to start only these services
-- debug, True or False, activate debug mode of Tornado: more logs when there is a error, autoreload server when you edit a script
-- port, an int, if you don't want to use the 443
+- debug, True or False, activate debug mode of Tornado (includes autoreload) and SSL, for extra logs use -ddd in the command line
+- port, int, if you want to override value from config. If it's also not defined in config, it use 443.
 
 ******
 Client
@@ -90,7 +117,7 @@ Client
    }
 
 
-When you invoque a RPC throught :py:class:`~DIRAC.TornadoServices.Client.TornadoClient` it returns server response and the rpcStub in a S_OK/S_ERROR,
+When you invoque a RPC throught :py:class:`~DIRAC.TornadoServices.Client.TornadoClient` it returns server response and the rpcStub,
 rpcStub is a dictionnary with some informations about the Client. Interface and usages are the same as :py:class:`~DIRAC.Core.DISET.RPCClient`.
 So, you can also use :py:class:`~DIRAC.TornadoServices.Client.RPCClientSelector` instead of :py:class:`~DIRAC.TornadoServices.Client.TornadoClient`
 or :py:class:`~DIRAC.Core.DISET.RPCClient`. :py:class:`~DIRAC.TornadoServices.Client.RPCClientSelector` will choose for your the right client to use.
@@ -103,7 +130,7 @@ Behind :py:class:`~DIRAC.TornadoServices.Client.TornadoClient` the `requests <ht
 - clientVO: The VO of client
 - extraCredentials: (if apply) Extra informations to authenticate client
 
-Service is determined by server thanks to URL rooting, not port like in DISET.
+Service is determined by server thanks to URL rooting, not with port like in DISET.
 
 By default server listen on port 443, default port for HTTPS.
 
@@ -128,6 +155,7 @@ Internal structure
 - :py:class:`~DIRAC.TornadoServices.Client.private.TornadoBaseClient` is the new :py:class:`~DIRAC.Core.DISET.private.BaseClient`. Most of code is copied from :py:class:`~DIRAC.Core.DISET.private.BaseClient` but some method have been rewrited to use `Requests <http://docs.python-requests.org/>`_ instead of Transports. Code duplication is done to fully separate DISET and HTTPS but later, some parts can be merged by using a new common class between DISET and HTTPS (these parts are explicitly given in the docstrings).
 - :py:class:`~DIRAC.Core.DISET.private.Transports.BaseTransport`, :py:class:`~DIRAC.Core.DISET.private.Transports.PlainTransport` and :py:class:`~DIRAC.Core.DISET.private.Transports.SSLTransport` are replaced by `Requests <http://docs.python-requests.org/>`_ 
 - keepAliveLapse is removed from rpcStub returned by Client because `Requests <http://docs.python-requests.org/>`_  manage it himself.
+- Due to JSON limitation you can write some specifics clients who inherit from :py:class:`~DIRAC.TornadoServices.Client.TornadoClient`, there is a simple example with :py:class:`~DIRAC.TornadoServices.Client.SpecificClient.ConfigurationClient` who transfer data in base64 to overcome JSON limitations
 
 
 Connections and certificates
@@ -146,5 +174,21 @@ Connections and certificates
 Some notes for later
 ********************
 
-- For security purpose, I purpose to remove the CallStack inside the S_ERROR returned by server when error happen before authentication/authorization (or during authorization process, for example: when denying access). Or at least, make this choice configurable (so in dev you have the callstack and in prod it's hidden). I think people not authorized to access service did not need callstack who can gave lots of informations.
-- Maybe it's possible to add kwargs in HTTPS because when using post, arguments are named.
+- It look possible to add kwargs because JSON permit to send dictionnary and more generally arguments are named in HTTP POST.
+
+
+************
+Launch tests
+************
+
+pytest
+******
+Because for now Tornado does not have "Real" services, you must use some fakes services to compare and test with DISET.
+You need tornadoCredDict, diracCredDict, User, UserDirac to run tests. Each test explain how to configure.
+
+multi-mechanize
+***************
+You need to have same services as pytest, if pytest run, then you can run multi-mechanize.
+
+
+For performance testing just go into ``DIRAC/TornadoServices/tests/multimechanize`` then run ``multimech-run ping`` or ``multimech-run ping dirac``

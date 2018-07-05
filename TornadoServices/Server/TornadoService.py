@@ -114,6 +114,7 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
     try:
       cls.initializeHandler(serviceInfo)
     # If anything happen during initialization, we return the error
+    # broad-except is necessary because we can't really control the exception in the handlers
     except Exception as e:  # pylint: disable=broad-except
       gLogger.error(e)
       error = S_ERROR('Error while initializing')
@@ -127,8 +128,12 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
   def initializeHandler(cls, serviceInfoDict):
     """
       This may be overwrited when you write a DIRAC service handler
-      And it must be a class method. This method is called only one time
-      during the initialization of the Tornado server
+      And it must be a class method. This method is called only one time,
+      at the first request
+
+      :param dict ServiceInfoDict: infos about services, it contains 
+                                    'serviceName', 'serviceSectionPath', 
+                                    'csPaths'and 'URL'
     """
     pass
 
@@ -167,7 +172,7 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
 
   def prepare(self):
     """
-      prepare
+      prepare the request, it read certificates and check authorizations.
     """
 
     # Init of service must be here, because if it crash we should be able to end request
@@ -182,7 +187,7 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
       # if an error occur when reading certificates
       # it can be strange but the RFC, in HTTP, say's that when error happend 
       # before authenfication we return 401 UNAUTHORIZED instead of 403 FORBIDDEN
-      self.reportUnauthorizedAccess(self, errorCode=HTTPErrorCodes.HTTP_UNAUTHORIZED)
+      self.reportUnauthorizedAccess(HTTPErrorCodes.HTTP_UNAUTHORIZED)
 
     self.method = self.get_argument("method")
     self.log.notice("Incoming request on /%s: %s" % (self._serviceName, self.method))
@@ -253,7 +258,7 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
     """
 
     # In case of error in server side we hide server CallStack to client
-    # If Tornado is set to debug mode CallStack is send when error occured
+    # If Tornado is set to debug mode CallStack is sended when error occured
     if not self.debug and 'CallStack' in dictionnary:
       del dictionnary['CallStack']
 
@@ -261,7 +266,7 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
     self.set_status(self._httpError)
     self.write(encode(dictionnary))
 
-  def reportUnauthorizedAccess(self, errorCode=HTTPErrorCodes.HTTP_FORBIDDEN):
+  def reportUnauthorizedAccess(self, errorCode=401):
     """
       This method stop the current request and return an error to client
 

@@ -31,8 +31,9 @@ import tornado.ioloop
 
 import DIRAC
 from DIRAC.TornadoServices.Server.HandlerManager import HandlerManager
-from DIRAC import gLogger, S_ERROR, S_OK
+from DIRAC import gLogger, S_ERROR, S_OK, gConfig
 from DIRAC.FrameworkSystem.Client.MonitoringClient import MonitoringClient
+from DIRAC.ConfigurationSystem.Client import PathFinder
 from DIRAC.Core.Security import Locations
 from DIRAC.Core.Utilities import MemStat
 
@@ -58,14 +59,26 @@ class TornadoServer(object):
       services = ['component/service1', 'component/service2']
       serverToLaunch = TornadoServer(services=services, port=1234, debug=True)
       serverToLaunch.startTornado()
+
+
+    **WARNING:** debug=True enable SSL debug and Tornado autoreload, 
+                 for extra logging use -ddd in your command line
   """
 
-  def __init__(self, services=None, debug=False, port=443):
+  def __init__(self, services=None, debug=False, port=None):
     """
+    Basic instanciation, set some variables
+
     :param list services: List of services you want to start, start all by default
     :param str debug: Activate debug mode of Tornado (autoreload server + more errors display) and M2Crypto
     :param int port: Used to change port, default is 443
     """
+
+    # If port not precised, get it from config
+    if port==None:
+      port = gConfig.getValue("/Systems/Tornado/%s/Port" % PathFinder.getSystemInstance('Tornado'))
+      if port==None: # If we still have nothing, use 443 (default for HTTPS)
+        port = 443
 
     if services and not isinstance(services, list):
       services = [services]

@@ -10,10 +10,6 @@
     - nbOfRetry (defined as private attribute) is removed, requests library manage it himself.
     - Underneath it use HTTP POST protocol and JSON
 
-  Changes to discuss:
-    - Remove the CallStack returned by server when server send S_ERROR after failed authentication
-       (or at least make it configurable, so it can be accessible in dev/debug but not in production for example)
-    - Possibility to add kwargs thanks to HTTPS
 
   Example::
 
@@ -39,7 +35,7 @@ class TornadoClient(TornadoBaseClient):
     """
       Return the RPC call procedure
       :param str attrname: Name of the procedure we are trying to call
-      :return: RPC procedure
+      :return: RPC procedure as function
     """
     def call(*args):
       """
@@ -52,6 +48,7 @@ class TornadoClient(TornadoBaseClient):
   def executeRPC(self, method, *args):
     """
       This function call a remote service
+
       :param str procedure: remote procedure name
       :param args: list of arguments
       :return: decoded response from server, server may return S_OK or S_ERROR

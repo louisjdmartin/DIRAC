@@ -1,6 +1,8 @@
 """
     Test if same service work on DIRAC and TORNADO
     Testing if basic operation works on a dummy example
+
+    These handlers provide a method who's access is always forbidden to test authorization system
     
     It's just normal services, entry in dirac.cfg are the same as usual.
     To start tornado use DIRAC/TornadoServices/scripts/tornado-start-all.py
@@ -9,13 +11,11 @@
       {
         User
         {
-          # It can be empty, use port 443 (HTTPS)
+          Protocol = https
         }
         UserDirac
         {
           Port = 3424
-          DisableMonitoring = yes
-          #HandlerPath = DIRAC/TornadoServices/Service/UserHandler.py
         }
       }
     ```
@@ -49,27 +49,6 @@ parametrize = mark.parametrize
 
 rpc_imp = ((RPCClientTornado, 'Framework/User'), (RPCClientDIRAC, 'Framework/UserDirac'))
 
-
-
-# @parametrize('rpc', rpc_imp)
-# @given(s=text(printable, max_size=64), s2=text(printable, max_size=64))
-# @settings(deadline=None, max_examples=42)
-# def test_basic_logic(rpc, s, s2):
-#   service = rpc[0](rpc[1])
-
-#   # Create a user
-#   newUser = service.addUser(s)
-#   userID = int(newUser['Value'])
-
-#   # Check if user exist and name is correct
-#   User = service.getUserName(userID)
-#   assert User['OK']
-#   assert User['Value'] == s
-
-#   # Check if update work
-#   service.editUser(userID, s2)
-#   User = service.getUserName(userID)
-#   assert User['Value'] == s2
 
 
 
@@ -108,4 +87,8 @@ def test_echo(rpc, data):
 
   assert service.echo(data)['Value'] == data
 
-#def test_whoami(): #Only in tornado
+def test_whoami(): #Only in tornado
+  credDict = RPCClientTornado('Framework/User').whoami()['Value']
+  assert 'DN' in credDict
+  assert 'CN' in credDict
+  assert 'isProxy' in credDict

@@ -2,7 +2,7 @@
   Custom TornadoClient for Configuration System
   Used like a normal client, should be instanciated if and only if we use the configuration service
 
-  Because of limitation of JSON some datas are encoded in base64
+  Because of limitation with JSON some datas are encoded in base64
 
 """
 
@@ -15,8 +15,8 @@ class ConfigurationClient(TornadoClient):
 
   def getCompressedData(self):
     """
-      Transmit request to service and get data in base64
-      Decode base64 before returning
+      Transmit request to service and get data in base64,
+      it decode base64 before returning.
     """
     retVal = self.executeRPC('getCompressedData')
     if retVal['OK'] and 'data' in retVal['Value']:
@@ -25,8 +25,8 @@ class ConfigurationClient(TornadoClient):
 
   def getCompressedDataIfNewer(self, sClientVersion):
     """
-      Transmit request to service and get data in base64
-      Decode base64 before returning
+      Transmit request to service and get data in base64,
+      it decode base64 before returning.
     """
     retVal = self.executeRPC('getCompressedDataIfNewer', sClientVersion)
     if retVal['OK'] and 'data' in retVal['Value']:
@@ -35,6 +35,6 @@ class ConfigurationClient(TornadoClient):
 
   def commitNewData(sData):
     """
-      Transmit request to service by encoding data in base64
+      Transmit request to service by encoding data in base64.
     """
     return self.executeRPC('commitNewData', b64encode(sData))

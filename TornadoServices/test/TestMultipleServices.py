@@ -3,7 +3,7 @@
 
 
     You must have 2 separate tornadohandlers and this services must be in dirac.cfg like normal service
-    Only change: dips:// become https://
+    Only change: dips:// became https://  and Protocol = dips became Protocol = https
 """
 from DIRAC.Core.Base.Script import parseCommandLine
 parseCommandLine()

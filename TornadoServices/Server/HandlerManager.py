@@ -16,8 +16,8 @@ from DIRAC.ConfigurationSystem.Client.PathFinder import getServiceURL
 class HandlerManager(object):
   """
     This class is designed to work with Tornado
-    handlers are stored in tornado.web.url object so they are ready to use
-    in Tornado (tornado.web.url store the handler and rooting informations)
+
+    It search and loads the handlers of services
   """
 
   def __init__(self, autoDiscovery=True, setup=None):
@@ -89,8 +89,8 @@ class HandlerManager(object):
             newserviceurl = getServiceURL(newservice) 
 
             #print '\n\n/Systems/%s/%s/Services/%s/Tornado' % (system, instance, service)
-            isTornado = gConfig.getValue('/Systems/%s/%s/Services/%s/Tornado' % (system, instance, service))
-            if isTornado and isTornado.lower() in ('y', 'yes', 'true'):
+            isTornado = gConfig.getValue('/Systems/%s/%s/Services/%s/Protocol' % (system, instance, service))
+            if isTornado and isTornado.lower() == 'https':
               serviceList.append(newservice)
     #print serviceList
     self.loadHandlersByServiceName(serviceList)

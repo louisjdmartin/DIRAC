@@ -17,7 +17,7 @@
       {
         tornadoCredDict
         {
-          # it can be empty, port is 443 (https) and no settings are required, but must be present
+          protocol = https
         }
         diracCredDict
         {
@@ -56,6 +56,9 @@ def get_RPC_returnedValue(serviceName, Client):
   return service.credDict()
 
 def get_all_returnedValues():
+  """
+    Just code factorisation to who call server and get credential dictionnary
+  """
   serviceNameTornado = 'Framework/tornadoCredDict'
   serviceNameDirac = 'Framework/diracCredDict'
   repTornado = TornadoClient(serviceNameTornado).whoami()
@@ -69,7 +72,7 @@ def get_all_returnedValues():
 @parametrize('UseServerCertificate', ('true', 'false'))
 def test_return_credential_are_equals(UseServerCertificate):
   """
-    The service called are for test and returns dictionnary
+    Check if certificates sended AND extraction have same comportement is DISET and HTTPS
   """
   gConfigurationData.setOptionInCFG( '/DIRAC/Security/UseServerCertificate', UseServerCertificate) 
 
@@ -82,11 +85,13 @@ def test_return_credential_are_equals(UseServerCertificate):
 @parametrize('UseServerCertificate', ('True', 'False'))
 def test_rpcStubs_are_equals(UseServerCertificate):
   """
+    Test if Clients returns the same rpcStubs
+
     Navigating through array is a bit complicated in this test...
     repDirac and repTornado may have the same structure:
 
     repDirac dict{
-      OK: str
+      OK: True
       rpcStub: tuple{
         ServiceName: str
         kwargs: dict{

@@ -1,6 +1,7 @@
 """ 
     Same class as DIRAC.Core.Base.Client but with _getRPC redefined to use the RPCClientSelector
-    Just a test, maybe it's better to modify DIRAC/Core/Base/Client with ``import DIRAC.TornadoServices.Client.RPCClientSelector as RPCClient``
+    Just for testing, not sure it's good solution
+    maybe it's better to modify DIRAC/Core/Base/Client with ``import DIRAC.TornadoServices.Client.RPCClientSelector as RPCClient``
 """
 from DIRAC.Core.Base.Client import Client
 from DIRAC.TornadoServices.Client.RPCClientSelector import RPCClientSelector

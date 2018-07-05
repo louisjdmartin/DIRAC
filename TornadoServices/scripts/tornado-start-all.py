@@ -3,6 +3,11 @@
 # File :   tornado-start-all
 # Author : Louis MARTIN
 ########################################################################
+# Just run this script to start Tornado and all services
+# You can add the port if needed, if not define get it from dirac.cfg or use default value (443)
+
+
+
 __RCSID__ = "$Id$"
 import sys
 from DIRAC.ConfigurationSystem.Client.LocalConfiguration import LocalConfiguration
@@ -11,9 +16,7 @@ from DIRAC.TornadoServices.Server.TornadoServer import TornadoServer
 
 localCfg = LocalConfiguration()
 
-debug = '--debug' in sys.argv
-multiprocess = '--multiprocess' in sys.argv
-port = 443
+port = None
 if len(sys.argv)>1:
   try:
     port = int(sys.argv[1])
@@ -33,5 +36,5 @@ if not resultDict['OK']:
 
 
 
-serverToLaunch = TornadoServer(debug=debug, port=port)
-serverToLaunch.startTornado(multiprocess=multiprocess)
+serverToLaunch = TornadoServer(port=port)
+serverToLaunch.startTornado()
