@@ -1,5 +1,5 @@
 """
-  TornadoService manage all services, your handler must inherith form this class
+  TornadoService represent one service services, your handler must inherith form this class
   TornadoService may be used only by TornadoServer.
 
   To create you must write this "minimal" code::

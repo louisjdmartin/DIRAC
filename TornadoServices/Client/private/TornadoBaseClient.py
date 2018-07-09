@@ -31,13 +31,16 @@ from DIRAC.ConfigurationSystem.Client.PathFinder import getServiceURL, getServic
 from DIRAC.Core.Utilities.JEncode import decode, encode
 from DIRAC.Core.Security import CS
 from DIRAC.Core.Security import Locations
+from DIRAC.Core.DISET.ThreadConfig import ThreadConfig
+
+
 
 
 class TornadoBaseClient(object):
   """
     This class contain initialization method and all utilities method used for RPC
   """
-
+  __threadConfig = ThreadConfig()
   VAL_EXTRA_CREDENTIALS_HOST = "hosts"
 
   KW_USE_CERTIFICATES = "useCertificates"
@@ -120,14 +123,13 @@ class TornadoBaseClient(object):
            * kwargs of the constructor (see KW_SETUP)
            * in the CS /DIRAC/Setup
            * default to 'Test'
-
-        WARNING: COPY/PASTE FROM Core/Diset/private/BaseClient FOR NOW
-        Except a line who get value from threadconfig
     """
     if self.KW_SETUP in self.kwargs and self.kwargs[self.KW_SETUP]:
       self.setup = str(self.kwargs[self.KW_SETUP])
     else:
-      self.setup = gConfig.getValue("/DIRAC/Setup", "Test")
+      self.setup = self.__threadConfig.getSetup()
+      if not self.setup:
+        self.setup = gConfig.getValue("/DIRAC/Setup", "Test")
     return S_OK()
 
   def __discoverURL(self):

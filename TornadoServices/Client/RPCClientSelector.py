@@ -10,7 +10,6 @@
     myService.doSomething()
 """
 
-import re
 
 from DIRAC.TornadoServices.Client.TornadoClient import TornadoClient
 from DIRAC.Core.DISET.RPCClient import RPCClient
@@ -19,11 +18,14 @@ from DIRAC import gLogger
 
 
 def isCompleteURL(url):
+  """
+    Just a test to check if URL is already given or not
+  """
   return url.startswith('http') or url.startswith('dip')
 
 
 def RPCClientSelector(*args, **kwargs):  # We use same interface as RPCClient
-  """ 
+  """
     Select the correct RPCClient, instanciate it, and return it
     :param args[0]: url: URL can be just "system/service" or "dips://domain:port/system/service"
   """
@@ -43,7 +45,7 @@ def RPCClientSelector(*args, **kwargs):  # We use same interface as RPCClient
       rpc = TornadoClient(*args, **kwargs)
     else:
       rpc = RPCClient(*args, **kwargs)
-  except Exception as e:
+  except Exception:
     # If anything wen't wrong in the resolution, we return default RPCClient
     # So the comportement is exactly the same as before implementation of Tornado
     rpc = RPCClient(*args, **kwargs)

@@ -14,8 +14,12 @@ from DIRAC.TornadoServices.Client.TornadoClient import TornadoClient
 
 def test_service_user():
   service = TornadoClient('Framework/User')
-  assert service.ping()['OK'] == True
+  ping = service.ping()
+  assert ping['OK'] == True
+  assert ping['Value']['name'] == 'Framework/User'
 
 def test_service_dummy():
   service = TornadoClient('Framework/DummyTornado')
-  assert service.ping()['OK'] == True
+  ping = service.ping()
+  assert ping['OK'] == True
+  assert ping['Value']['name'] == 'Framework/DummyTornado'

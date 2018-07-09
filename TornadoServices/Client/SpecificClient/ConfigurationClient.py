@@ -16,7 +16,9 @@ class ConfigurationClient(TornadoClient):
   def getCompressedData(self):
     """
       Transmit request to service and get data in base64,
-      it decode base64 before returning.
+      it decode base64 before returning
+
+      :returns str:Configuration data, compressed
     """
     retVal = self.executeRPC('getCompressedData')
     if retVal['OK'] and 'data' in retVal['Value']:
@@ -27,6 +29,8 @@ class ConfigurationClient(TornadoClient):
     """
       Transmit request to service and get data in base64,
       it decode base64 before returning.
+
+      :returns str:Configuration data, if changed, compressed
     """
     retVal = self.executeRPC('getCompressedDataIfNewer', sClientVersion)
     if retVal['OK'] and 'data' in retVal['Value']:
