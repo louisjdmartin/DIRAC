@@ -12,7 +12,7 @@ from DIRAC.Core.Utilities.ReturnValues import S_OK, S_ERROR
 from DIRAC.ConfigurationSystem.private.ServiceInterface import ServiceInterface
 from DIRAC.Core.Utilities import DErrno
 from DIRAC.TornadoServices.Server.TornadoService import TornadoService
-from base64 import b64encode
+from base64 import b64encode, b64decode
 gServiceInterface = None
 gPilotSynchronizer = None
 
@@ -43,7 +43,7 @@ class TornadoConfigurationHandler(TornadoService):
       
     """
     sData = gServiceInterface.getCompressedConfigurationData()
-    return strDictTob64Dict(S_OK(b64encode(sData)))
+    return S_OK(b64encode(sData))
 
 
   def export_getCompressedDataIfNewer(self, sClientVersion):

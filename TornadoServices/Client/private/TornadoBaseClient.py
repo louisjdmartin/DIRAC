@@ -113,10 +113,6 @@ class TornadoBaseClient(object):
       result = initFunc()
       if not result['OK'] and self.__initStatus['OK']:
         self.__initStatus = result
-    self._initialize()
-
-  def _initialize(self):
-    pass
 
   def __discoverSetup(self):
     """ Discover which setup to use and stores it in self.setup
@@ -207,6 +203,8 @@ class TornadoBaseClient(object):
         self.kwargs[self.KW_SKIP_CA_CHECK] = False
       else:
         self.kwargs[self.KW_SKIP_CA_CHECK] = CS.skipCACheck()
+
+    # TODO: Rewrite a little bit here: don't need the proxy string
     if self.KW_PROXY_CHAIN in self.kwargs:
       try:
         self.kwargs[self.KW_PROXY_STRING] = self.kwargs[self.KW_PROXY_CHAIN].dumpAllToString()['Value']

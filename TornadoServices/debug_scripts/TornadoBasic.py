@@ -7,6 +7,7 @@ __RCSID__ = "$Id$"
 import ssl
 import os
 import DIRAC
+from DIRAC import gLogger, S_ERROR
 
 from tornado.httpserver import HTTPServer
 from tornado.web import Application, url

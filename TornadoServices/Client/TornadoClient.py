@@ -6,8 +6,8 @@
   in RPC.
 
   Main changes:
-    - KeepAliveLapse is removed, requests library manage it himself.
-    - nbOfRetry (defined as private attribute) is removed, requests library manage it himself.
+    - KeepAliveLapse is removed, requests library manage it hitself.
+    - nbOfRetry (defined as private attribute) is removed, requests library manage it hitself.
     - Underneath it use HTTP POST protocol and JSON
 
 
@@ -34,6 +34,7 @@ class TornadoClient(TornadoBaseClient):
   def __getattr__(self, attrname):
     """
       Return the RPC call procedure
+
       :param str attrname: Name of the procedure we are trying to call
       :return: RPC procedure as function
     """
@@ -51,7 +52,7 @@ class TornadoClient(TornadoBaseClient):
 
       :param str procedure: remote procedure name
       :param args: list of arguments
-      :return: decoded response from server, server may return S_OK or S_ERROR
+      :returns: decoded response from server, server may return S_OK or S_ERROR
     """
     rpcCall = {'method': method, 'args': encode(args)}
     # Start request

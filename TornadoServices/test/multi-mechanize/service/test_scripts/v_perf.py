@@ -15,9 +15,8 @@ class Transaction(object):
     return
 
   def run(self):
-    i = randint(0, 42)
     s = "Chaine 1"
-    s2 = "Chaine %d" % i
+    s2 = "Chaine %d" % randint(0, 42)
 
     newUser = self.client.addUser(s)
     userID = int(newUser['Value'])

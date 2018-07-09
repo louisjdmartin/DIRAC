@@ -33,7 +33,7 @@ class ConfigurationClient(TornadoClient):
       retVal['Value']['data'] = b64decode(retVal['Value']['data'])
     return retVal
 
-  def commitNewData(sData):
+  def commitNewData(self, sData):
     """
       Transmit request to service by encoding data in base64.
     """

@@ -1,15 +1,10 @@
-# TODO: Remove some import...
-
-from os.path import realpath
-from DIRAC.Core.Utilities.ObjectLoader import ObjectLoader
 from tornado.web import url as TornadoURL, RequestHandler
+
+
+from DIRAC.Core.Utilities.ObjectLoader import ObjectLoader
 from DIRAC import gLogger, S_ERROR, S_OK, gConfig
-from types import ModuleType
-import DIRAC
-from DIRAC.ConfigurationSystem.Client.Helpers import CSGlobals
 from DIRAC.Core.Base.private.ModuleLoader import ModuleLoader
 from DIRAC.ConfigurationSystem.Client import PathFinder
-from DIRAC.ConfigurationSystem.Client.PathFinder import divideFullName
 from DIRAC.ConfigurationSystem.Client.PathFinder import getServiceURL
 
 
@@ -23,7 +18,7 @@ class HandlerManager(object):
   def __init__(self, autoDiscovery=True, setup=None):
     """
       Initialization function, you can set autoDiscovery=False to prevent automatic
-      discovery of handler. If disabled you can use loadHandlersByServiceName() to 
+      discovery of handler. If disabled you can use loadHandlersByServiceName() to
       load your handlers or loadHandlerInHandlerManager()
     """
     self.__handlers = {}
@@ -62,7 +57,7 @@ class HandlerManager(object):
         return S_ERROR("URL not found for %s" % (handlerTuple[0]))
 
       # Finally add the URL to handlers
-      if not url in self.__handlers:
+      if url not in self.__handlers:
         self.__handlers[url] = handlerTuple[1]
         gLogger.info("New handler: %s with URL %s" % (handlerTuple[0], url))
     else:
@@ -72,7 +67,7 @@ class HandlerManager(object):
   def discoverHandlers(self):
     """
       Force the discovery of URL, automatic call when we try to get handlers for the first time.
-      You can disable the automatic call with autoDiscovery=False at initialization 
+      You can disable the automatic call with autoDiscovery=False at initialization
     """
     gLogger.debug("Trying to auto-discover the handlers for Tornado")
 
@@ -86,15 +81,14 @@ class HandlerManager(object):
         if services['OK']:
           for service in services['Value']:
             newservice = ("%s/%s" % (system, service))
-            newserviceurl = getServiceURL(newservice) 
+            newserviceurl = getServiceURL(newservice)
 
-            #print '\n\n/Systems/%s/%s/Services/%s/Tornado' % (system, instance, service)
-            isTornado = gConfig.getValue('/Systems/%s/%s/Services/%s/Protocol' % (system, instance, service))
-            if isTornado and isTornado.lower() == 'https':
+            # print '\n\n/Systems/%s/%s/Services/%s/Tornado' % (system, instance, service)
+            isHTTPS = gConfig.getValue('/Systems/%s/%s/Services/%s/Protocol' % (system, instance, service))
+            if isHTTPS and isHTTPS.lower() == 'https':
               serviceList.append(newservice)
-    #print serviceList
+    # print serviceList
     self.loadHandlersByServiceName(serviceList)
-
 
   def loadHandlersByServiceName(self, servicesNames):
     """
@@ -110,15 +104,15 @@ class HandlerManager(object):
       servicesNames = [servicesNames]
 
     load = self.loader.loadModules(servicesNames)
-    if load['OK']:
-      for module in self.loader.getModules().values():
-        url = module['loadName']
+    if not load['OK']:
+      return load
+    for module in self.loader.getModules().values():
+      url = module['loadName']
 
-        serviceTuple = url.replace('https://', '').split('/')[-2:]
-        url = "%s/%s" % (serviceTuple[0], serviceTuple[1])
-        self.__addHandler((module['loadName'], module['classObj']), url)
-      return S_OK()
-    return load
+      serviceTuple = url.replace('https://', '').split('/')[-2:]
+      url = "%s/%s" % (serviceTuple[0], serviceTuple[1])
+      self.__addHandler((module['loadName'], module['classObj']), url)
+    return S_OK()
 
   def __urlFinder(self, module):
     """
@@ -140,12 +134,12 @@ class HandlerManager(object):
       Get all handler for usage in Tornado, as a list of tornado.web.url
       If there is no handler found before, it try to find them
     """
-    if self.__handlers == {} and self.__autoDiscovery:
+    if not self.__handlers and self.__autoDiscovery:
       self.__autoDiscovery = False
       self.discoverHandlers()
-    urls = []  
-    for key in handlerDict.keys():
-      urls.append(TornadoURL(key, handlerDict[key]))
+    urls = []
+    for key in self.__handlers:
+      urls.append(TornadoURL(key, self.__handlers[key]))
     return urls
 
   def getHandlersDict(self):
@@ -154,7 +148,7 @@ class HandlerManager(object):
       - Keys: URL at str format, e.g.: "/Framework/Service"
       - Values: tornado.web.url, ready to use in tornado
     """
-    if self.__handlers == {} and self.__autoDiscovery:
+    if not self.__handlers and self.__autoDiscovery:
       self.__autoDiscovery = False
       self.discoverHandlers()
     return self.__handlers

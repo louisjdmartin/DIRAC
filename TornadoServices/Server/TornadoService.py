@@ -26,7 +26,7 @@
 import os
 import time
 from datetime import datetime
-from tornado.web import RequestHandler, MissingArgumentError
+from tornado.web import RequestHandler
 from tornado import gen
 import tornado.ioloop
 from tornado.ioloop import IOLoop
@@ -117,9 +117,8 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
     # broad-except is necessary because we can't really control the exception in the handlers
     except Exception as e:  # pylint: disable=broad-except
       gLogger.error(e)
-      error = S_ERROR('Error while initializing')
+      return S_ERROR('Error while initializing')
 
-      return error
 
     cls.__FLAG_INIT_DONE = True
     return S_OK()
@@ -175,7 +174,7 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
       prepare the request, it read certificates and check authorizations.
     """
 
-    # Init of service must be here, because if it crash we should be able to end request
+    # Init of service must be checked here, because if it have crashed we are not able to end request at initialization (can't write on client)
     if not self.__FLAG_INIT_DONE:
       error = encode("Service can't be initialized !")
       self.__write_return(error)
@@ -235,10 +234,7 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
       return S_ERROR("Unknown method %s" % self.method)
 
     # Decode args
-    try:
-      args_encoded = self.get_body_argument('args')
-    except MissingArgumentError:
-      args = []
+    args_encoded = self.get_body_argument('args', default=[])
 
     args = decode(args_encoded)[0]
     # Execute
@@ -402,7 +398,7 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
 #  Utilities methods
 #  From DIRAC.Core.DISET.requestHandler to get same interface
 #  Adapted for Tornado
-#   TODO : Some cleaning here
+#   TODO : Some cleaning here / Delete useless functions
 ####
 
 

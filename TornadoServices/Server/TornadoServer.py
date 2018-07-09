@@ -61,7 +61,7 @@ class TornadoServer(object):
       serverToLaunch.startTornado()
 
 
-    **WARNING:** debug=True enable SSL debug and Tornado autoreload, 
+    **WARNING:** debug=True enable SSL debug and Tornado autoreload,
                  for extra logging use -ddd in your command line
   """
 
@@ -75,9 +75,9 @@ class TornadoServer(object):
     """
 
     # If port not precised, get it from config
-    if port==None:
+    if port is None:
       port = gConfig.getValue("/Systems/Tornado/%s/Port" % PathFinder.getSystemInstance('Tornado'))
-      if port==None: # If we still have nothing, use 443 (default for HTTPS)
+      if port is None:  # If we still have nothing, use 443 (default for HTTPS)
         port = 443
 
     if services and not isinstance(services, list):
@@ -89,7 +89,7 @@ class TornadoServer(object):
     self.port = port
     self.handlerManager = HandlerManager()
     self._monitor = MonitoringClient()
-    self.__monitoringLoopDelay = 60 #In secs
+    self.__monitoringLoopDelay = 60  # In secs
 
     # If services are defined, load only these ones (useful for debug purpose)
     if services and services != []:
@@ -147,10 +147,10 @@ class TornadoServer(object):
 
     if multiprocess:
       server.start(0)
-      tornado.ioloop.PeriodicCallback(self.__reportToMonitoring, self.__monitoringLoopDelay*1000).start()
+      tornado.ioloop.PeriodicCallback(self.__reportToMonitoring, self.__monitoringLoopDelay * 1000).start()
       IOLoop.current().start()
     else:
-      tornado.ioloop.PeriodicCallback(self.__reportToMonitoring, self.__monitoringLoopDelay*1000).start()
+      tornado.ioloop.PeriodicCallback(self.__reportToMonitoring, self.__monitoringLoopDelay * 1000).start()
       IOLoop.instance().start()
     return True  # Never called because of IOLoop, but to make pylint happy
 
@@ -169,7 +169,6 @@ class TornadoServer(object):
     self._monitor.setComponentExtraParam('startTime', datetime.datetime.utcnow())
     return S_OK()
 
-
   def __reportToMonitoring(self):
     """
       *Called every minute*
@@ -186,7 +185,7 @@ class TornadoServer(object):
     """
       Get time to prepare CPU usage monitoring and send memory usage to monitor
     """
-    now = time.time()
+    now = time.time() # Used to calulate a delta
     stats = os.times()
     cpuTime = stats[0] + stats[2]
     if now - self.__monitorLastStatsUpdate < 0:
