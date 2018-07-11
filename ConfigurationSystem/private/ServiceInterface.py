@@ -1,4 +1,4 @@
-""" Threaded implementation of services
+""" Threaded implementation of service interface
 """
 
 import time
@@ -12,21 +12,26 @@ __RCSID__ = "$Id$"
 
 
 class ServiceInterface(ServiceInterfaceBase, threading.Thread):
+  """
+    Service interface, manage Slave/Master server for CS
+    Thread components
+  """
 
-  def __init__( self, sURL ):
+  def __init__(self, sURL):
     threading.Thread.__init__(self)
     ServiceInterfaceBase.__init__(self, sURL)
     self.__launchCheckSlaves()
 
-
-  def __launchCheckSlaves( self ): ## TO REDEFINE !
-    gLogger.info( "Starting purge slaves thread" )
-    self.setDaemon( 1 )
+  def __launchCheckSlaves(self):
+    """
+      Start loop who check if slaves are alive
+    """
+    gLogger.info("Starting purge slaves thread")
+    self.setDaemon(1)
     self.start()
 
-
-  def run( self ):
+  def run(self):
     while True:
       iWaitTime = gConfigurationData.getSlavesGraceTime()
-      time.sleep( iWaitTime )
+      time.sleep(iWaitTime)
       self._checkSlavesStatus()

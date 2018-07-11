@@ -39,9 +39,6 @@ class TornadoConfigurationHandler(TornadoService):
 
 
   def export_getCompressedData(self):
-    """
-      
-    """
     sData = gServiceInterface.getCompressedConfigurationData()
     return S_OK(b64encode(sData))
 
