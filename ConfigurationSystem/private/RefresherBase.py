@@ -9,7 +9,7 @@ import random
 from DIRAC.ConfigurationSystem.Client.ConfigurationData import gConfigurationData
 from DIRAC.ConfigurationSystem.Client.PathFinder import getGatewayURLs
 from DIRAC.FrameworkSystem.Client.Logger import gLogger
-from DIRAC.Core.Utilities import List, LockRing
+from DIRAC.Core.Utilities import List
 from DIRAC.Core.Utilities.EventDispatcher import gEventDispatcher
 from DIRAC.Core.Utilities.ReturnValues import S_OK, S_ERROR
 
@@ -52,7 +52,7 @@ class RefresherBase():
   def addListenerToNewVersionEvent(self, functor):
     gEventDispatcher.addListener("CSNewVersion", functor)
 
-    
+
   def disable(self):
     """
       Disable the refresher and prevent any request to another server
@@ -83,7 +83,7 @@ class RefresherBase():
     """
     return self._refreshEnabled
 
- 
+
 
   def forceRefresh(self, fromMaster=False):
     """
@@ -94,7 +94,7 @@ class RefresherBase():
       return self._refresh(fromMaster=fromMaster)
     return S_OK()
 
-  
+
 
 
 

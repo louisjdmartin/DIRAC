@@ -5,7 +5,6 @@
 __RCSID__ = "$Id$"
 
 import time
-import random
 import os
 
 from DIRAC.ConfigurationSystem.private.RefresherThread import RefresherThread
@@ -15,22 +14,20 @@ from DIRAC.ConfigurationSystem.private.RefresherIOLoop import RefresherIOLoop
 
 
 
-class Refresher(RefresherThread, RefresherBase):
+class Refresher(RefresherBase, RefresherThread):
   """
     The refresher!
   """
   def __init__(self):
-    print "INIT REFRESHER"
     RefresherThread.__init__(self)
     RefresherBase.__init__(self)
 
 
-class TornadoRefresher(RefresherIOLoop, RefresherBase):
+class TornadoRefresher(RefresherBase, RefresherIOLoop):
   """
-    The refresher!
+    The refresher, modified for Tornado
   """
   def __init__(self):
-    print "INIT REFRESHER"
     RefresherIOLoop.__init__(self)
     RefresherBase.__init__(self)
 

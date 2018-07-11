@@ -246,8 +246,7 @@ class TornadoBaseClient(object):
           -> if KW_DELEGATED_DN in kwargs, or delegatedDN in threadConfig, put in in self.kwargs
           -> If we have a delegated DN but not group, we find the corresponding group in the CS
 
-    WARNING: (mostly) COPY/PASTE FROM Core/Diset/private/BaseClient
-    -> Interactions with thread removed
+    WARNING: COPY/PASTE FROM Core/Diset/private/BaseClient
     """
     # Wich extra credentials to use?
     if self.__useCertificates:
@@ -257,22 +256,21 @@ class TornadoBaseClient(object):
     if self.KW_EXTRA_CREDENTIALS in self.kwargs:
       self.__extraCredentials = self.kwargs[self.KW_EXTRA_CREDENTIALS]
     # Are we delegating something?
+    delegatedDN, delegatedGroup = self.__threadConfig.getID()
     if self.KW_DELEGATED_DN in self.kwargs and self.kwargs[self.KW_DELEGATED_DN]:
       delegatedDN = self.kwargs[self.KW_DELEGATED_DN]
-    else:
-      delegatedDN = False
+    elif delegatedDN:
+      self.kwargs[self.KW_DELEGATED_DN] = delegatedDN
     if self.KW_DELEGATED_GROUP in self.kwargs and self.kwargs[self.KW_DELEGATED_GROUP]:
       delegatedGroup = self.kwargs[self.KW_DELEGATED_GROUP]
-    else:
-      delegatedGroup = False
+    elif delegatedGroup:
+      self.kwargs[self.KW_DELEGATED_GROUP] = delegatedGroup
     if delegatedDN:
       if not delegatedGroup:
         result = CS.findDefaultGroupForDN(self.kwargs[self.KW_DELEGATED_DN])
         if not result['OK']:
           return result
       self.__extraCredentials = (delegatedDN, delegatedGroup)
-
-      print self.__extraCredentials
     return S_OK()
 
   def __discoverTimeout(self):

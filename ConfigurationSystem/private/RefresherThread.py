@@ -1,13 +1,10 @@
 import threading
 import thread
 import time
-import random
 from DIRAC.ConfigurationSystem.Client.ConfigurationData import gConfigurationData
-from DIRAC.ConfigurationSystem.Client.PathFinder import getGatewayURLs
 from DIRAC.FrameworkSystem.Client.Logger import gLogger
-from DIRAC.Core.Utilities import List, LockRing
-from DIRAC.Core.Utilities.EventDispatcher import gEventDispatcher
-from DIRAC.Core.Utilities.ReturnValues import S_OK, S_ERROR
+from DIRAC.Core.Utilities import LockRing
+from DIRAC.Core.Utilities.ReturnValues import S_ERROR
 
 
 class RefresherThread(threading.Thread):
