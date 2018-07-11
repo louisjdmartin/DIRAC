@@ -16,7 +16,7 @@ from DIRAC.FrameworkSystem.Client.Logger import gLogger
 from DIRAC.Core.Utilities.ReturnValues import S_OK, S_ERROR
 ##from DIRAC.Core.DISET.RPCClient import RPCClient
 ## Louis
-from DIRAC.TornadoServices.Client.SpecificClient.ConfigurationClient import ConfigurationClient as RPCClient
+from DIRAC.TornadoServices.Client.TornadoClient import TornadoClient as RPCClient
 
 __RCSID__ = "$Id$"
 
@@ -24,6 +24,7 @@ __RCSID__ = "$Id$"
 class ServiceInterface( threading.Thread ):
 
   def __init__( self, sURL ):
+    print "SERVICE INTERFACE"
     threading.Thread.__init__( self )
     self.sURL = sURL
     gLogger.info( "Initializing Configuration Service", "URL is %s" % sURL )
@@ -76,11 +77,15 @@ class ServiceInterface( threading.Thread ):
       gConfigurationData.writeRemoteConfigurationToDisk()
 
   def publishSlaveServer( self, sSlaveURL ):
+
     if not gConfigurationData.isMaster():
       return S_ERROR( "Configuration modification is not allowed in this server" )
+
     gLogger.info( "Pinging slave %s" % sSlaveURL )
+
     rpcClient = RPCClient( sSlaveURL, timeout = 10, useCertificates = True )
     retVal = rpcClient.ping()
+    print "HEY"
     if not retVal[ 'OK' ]:
       gLogger.info( "Slave %s didn't reply" % sSlaveURL )
       return

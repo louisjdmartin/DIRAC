@@ -35,6 +35,7 @@ from DIRAC import gLogger, S_ERROR, S_OK, gConfig
 from DIRAC.FrameworkSystem.Client.MonitoringClient import MonitoringClient
 from DIRAC.ConfigurationSystem.Client import PathFinder
 from DIRAC.Core.Security import Locations
+from DIRAC.ConfigurationSystem.private.Refresher import gRefresher
 from DIRAC.Core.Utilities import MemStat
 
 
@@ -73,10 +74,16 @@ class TornadoServer(object):
     :param str debug: Activate debug mode of Tornado (autoreload server + more errors display) and M2Crypto
     :param int port: Used to change port, default is 443
     """
+    # If Tornado is used gRefresher must be disabled to avoid conflicts with IOLoop
+    # Then we must use Tornado version of the refresher
+    # from DIRAC.ConfigurationSystem.private.RefresherIOLoop import RefresherIOLoop
+    # gRefresher.useAlternativeBackgroundRefresher(RefresherIOLoop)
+    
 
     # If port not precised, get it from config
     if port is None:
       port = gConfig.getValue("/Systems/Tornado/%s/Port" % PathFinder.getSystemInstance('Tornado'))
+
       if port is None:  # If we still have nothing, use 443 (default for HTTPS)
         port = 443
 
@@ -147,11 +154,8 @@ class TornadoServer(object):
 
     if multiprocess:
       server.start(0)
-      tornado.ioloop.PeriodicCallback(self.__reportToMonitoring, self.__monitoringLoopDelay * 1000).start()
-      IOLoop.current().start()
-    else:
-      tornado.ioloop.PeriodicCallback(self.__reportToMonitoring, self.__monitoringLoopDelay * 1000).start()
-      IOLoop.instance().start()
+    tornado.ioloop.PeriodicCallback(self.__reportToMonitoring, self.__monitoringLoopDelay * 1000).start()
+    IOLoop.current().start()
     return True  # Never called because of IOLoop, but to make pylint happy
 
   def _initMonitoring(self):
