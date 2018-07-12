@@ -52,9 +52,7 @@ class TornadoConfigurationHandler(TornadoService):
 
 
   def export_publishSlaveServer(self, sURL):
-    print sURL
     gServiceInterface.publishSlaveServer(sURL)
-    print "END OF PUBLISHING"
     return S_OK()
 
 

@@ -117,12 +117,6 @@ class ServiceInterfaceBase(object):
                                                 ", ".join(self.dAliveSlaveServers.keys())))
       self.__generateNewVersion()
 
-  def getCompressedConfiguration(self):
-    """
-      I have no idea why this method is here, it returns nothing and looks to be never used
-      But it was there... I pretty sure we can remove it
-    """
-    sData = gConfigurationData.getCompressedData()
 
   def updateConfiguration(self, sBuffer, commiter="", updateVersionOption=False):
     """
