@@ -1,3 +1,10 @@
+"""
+  A little script to analyze multi-mechanize tests by ploting every test in a single figure
+
+  Because it can't be automatized you have to define path of the folder who contains results
+
+  testTornado and testDirac must have the same length
+"""
 import csv
 import matplotlib.pyplot as plt
 
@@ -19,7 +26,7 @@ def read_data(test, groupSize):
       count += 1
       sumgrouptime+=float(row[1])
       sumgrouprequestTime+=float(row[4])
-      # Ici on moyenne un groupe de points sinon l'affichage est illisible
+      # We group some points to make graph readable
       if(count==groupSize):
         time.append(sumgrouptime/groupSize)
         requestTime.append(sumgrouprequestTime/groupSize)
@@ -28,7 +35,7 @@ def read_data(test, groupSize):
         count = 0
   return (time, requestTime)
 
-def affiche(testTornado, testDirac, subplot, groupSize):
+def displayGraph(testTornado, testDirac, subplot, groupSize):
   plt.subplot(subplot)
   plt.ylabel('red = dirac')
    
@@ -38,8 +45,7 @@ def affiche(testTornado, testDirac, subplot, groupSize):
   plt.plot(timeTornado,requestTimeTornado, 'b-',timeDirac,requestTimeDirac, 'r-')
 
 
-# On suppose qu'il y a autant de test Tornado que Dirac pour ce script
-# La formule bizarre permet juste d'afficher les graphiques dans la meme fenetre
+# The "100*len(testTornado)+11+i" can look strange but it define a sublot dynamically
 for i in range(len(testTornado)):
-  affiche(testTornado[i], testDirac[i], 100*len(testTornado)+11+i,42)
+  displayGraph(testTornado[i], testDirac[i], 100*len(testTornado)+11+i,42)
 plt.show()

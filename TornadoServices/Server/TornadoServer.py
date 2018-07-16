@@ -18,11 +18,9 @@ import tornado.netutil  # pylint: disable=wrong-import-position
 tornado.netutil.ssl_wrap_socket = m2_wrap_socket  # pylint: disable=wrong-import-position
 
 import tornado.httputil  # pylint: disable=wrong-import-position
-tornado.httputil.HTTPServerRequest.configure(
-    'tornado_m2crypto.m2httputil.M2HTTPServerRequest')  # pylint: disable=wrong-import-position
+tornado.httputil.HTTPServerRequest.configure('tornado_m2crypto.m2httputil.M2HTTPServerRequest')  # pylint: disable=wrong-import-position
 import tornado.iostream  # pylint: disable=wrong-import-position
-tornado.iostream.SSLIOStream.configure(
-    'tornado_m2crypto.m2iostream.M2IOStream')  # pylint: disable=wrong-import-position
+tornado.iostream.SSLIOStream.configure('tornado_m2crypto.m2iostream.M2IOStream')  # pylint: disable=wrong-import-position
 
 from tornado.httpserver import HTTPServer
 from tornado.web import Application, url
@@ -35,7 +33,6 @@ from DIRAC import gLogger, S_ERROR, S_OK, gConfig
 from DIRAC.FrameworkSystem.Client.MonitoringClient import MonitoringClient
 from DIRAC.ConfigurationSystem.Client import PathFinder
 from DIRAC.Core.Security import Locations
-from DIRAC.ConfigurationSystem.private.Refresher import gRefresher
 from DIRAC.Core.Utilities import MemStat
 
 
@@ -78,7 +75,7 @@ class TornadoServer(object):
     # Then we must use Tornado version of the refresher
     # from DIRAC.ConfigurationSystem.private.RefresherIOLoop import RefresherIOLoop
     # gRefresher.useAlternativeBackgroundRefresher(RefresherIOLoop)
-    
+
 
     # If port not precised, get it from config
     if port is None:
@@ -107,6 +104,8 @@ class TornadoServer(object):
     for key in handlerDict:
       # handlerDict[key].initializeService(key)
       self.urls.append(url(key, handlerDict[key], dict(debug=debug)))
+    self.__report = None
+    self.__monitorLastStatsUpdate = None
 
   def startTornado(self, multiprocess=False):
     """
@@ -135,6 +134,13 @@ class TornadoServer(object):
         'sslDebug': self.debug
     }
 
+    self.__monitorLastStatsUpdate = time.time()
+    self.__report = self.__startReportToMonitoringLoop()
+
+    tornado.ioloop.PeriodicCallback(self.__reportToMonitoring, self.__monitoringLoopDelay * 1000).start()
+
+
+
     # Start server
     server = HTTPServer(router, ssl_options=ssl_options)
     try:
@@ -149,19 +155,18 @@ class TornadoServer(object):
     for service in self.urls:
       gLogger.debug("Available service: %s" % service)
 
-    self.__monitorLastStatsUpdate = time.time()
-    self.__report = self.__startReportToMonitoringLoop()
 
     if multiprocess:
       server.start(0)
-    tornado.ioloop.PeriodicCallback(self.__reportToMonitoring, self.__monitoringLoopDelay * 1000).start()
     IOLoop.current().start()
     return True  # Never called because of IOLoop, but to make pylint happy
 
   def _initMonitoring(self):
-    # Init extra bits of monitoring
+    """
+      Init extra bits of monitoring
+    """
 
-    self._monitor.setComponentType(MonitoringClient.COMPONENT_WEB)  # ADD COMPONENT TYPE FOR TORNADO ?
+    self._monitor.setComponentType(MonitoringClient.COMPONENT_TORNADO)
     self._monitor.initialize()
     self._monitor.setComponentName('Tornado')
 

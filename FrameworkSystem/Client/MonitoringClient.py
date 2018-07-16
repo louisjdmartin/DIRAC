@@ -7,6 +7,9 @@ __RCSID__ = "$Id"
 
 import time
 import types
+import os
+
+import tornado.ioloop
 
 import DIRAC
 from DIRAC import gConfig, gLogger, S_OK, S_ERROR
@@ -51,7 +54,32 @@ class MonitoringFlusher( object ):
     if mc not in self.__mcList:
       self.__mcList.append( mc )
 
-gMonitoringFlusher = MonitoringFlusher()
+
+class MonitoringFlusherTornado(object):
+  """
+  This class flushes all monitoring clients registered
+  Works with the Tornado IOLoop
+  """
+
+  def __init__(self):
+    self.__mcList = []
+    gLogger.info("Using MonitoringClient in IOLoop mode")
+    # Here we don't need to use IOLoop.current(), 
+    tornado.ioloop.PeriodicCallback(self.flush, 300000).start()
+
+  def flush(self, allData=False):
+    gLogger.info('Flushing monitoring')
+    for mc in self.__mcList:
+      mc.flush(allData)
+
+  def registerMonitoringClient(self, mc):
+    if mc not in self.__mcList:
+      self.__mcList.append(mc)
+
+if os.environ.get('USE_TORNADO_IOLOOP', 'false').lower() == 'true':
+  gMonitoringFlusher = MonitoringFlusherTornado()
+else:
+  gMonitoringFlusher = MonitoringFlusher()
 
 class MonitoringClient( object ):
   """ It accumulates monitoring info from components before flushing using gMonitoringFlusher
@@ -68,6 +96,7 @@ class MonitoringClient( object ):
   COMPONENT_AGENT = "agent"
   COMPONENT_WEB = "web"
   COMPONENT_SCRIPT = "script"
+  COMPONENT_TORNADO = "tornado"
 
   __validMonitoringValues = ( types.IntType, types.LongType, types.FloatType )
 
@@ -132,6 +161,8 @@ class MonitoringClient( object ):
       self.setComponentName( 'WebApp' )
     elif self.sourceDict[ 'componentType' ] == self.COMPONENT_SCRIPT:
       self.cfgSection = "/Script"
+    elif self.sourceDict['componentType'] == self.COMPONENT_TORNADO:
+      self.cfgSection = "/Tornado"
     else:
       raise Exception( "Component type has not been defined" )
     gMonitoringFlusher.registerMonitoringClient( self )

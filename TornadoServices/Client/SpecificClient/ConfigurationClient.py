@@ -9,9 +9,12 @@
 from base64 import b64encode, b64decode
 
 from DIRAC.TornadoServices.Client.TornadoClient import TornadoClient
-from DIRAC.TornadoServices.Utilities.b64Tornado import b64DictTostrDict
 
 class ConfigurationClient(TornadoClient):
+  """
+    The specific client for configuration system.
+    To avoid JSON limitation it adds base 64 encoding
+  """
 
   def getCompressedData(self):
     """

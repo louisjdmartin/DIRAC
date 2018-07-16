@@ -2,7 +2,7 @@
   TornadoClient is equivalent of the RPCClient but in HTTPS.
   Usage of TornadoClient is the same as RPCClient, you can instanciate TornadoClient with
   complete url (https://domain/component/service) or just "component/service". Like RPCClient
-  you can use all method defined in your service, your call will be automatically transformed 
+  you can use all method defined in your service, your call will be automatically transformed
   in RPC.
 
   Main changes:
@@ -19,7 +19,6 @@
 
 """
 
-from DIRAC import S_ERROR
 from DIRAC.Core.Utilities.JEncode import encode
 from DIRAC.TornadoServices.Client.private.TornadoBaseClient import TornadoBaseClient
 
@@ -73,6 +72,3 @@ def executeRPCStub(rpcStub):
   rpcFunc = getattr(client, rpcStub[1])
   # Reproduce the call
   return rpcFunc(*rpcStub[2])
-
-
-

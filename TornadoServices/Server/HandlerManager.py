@@ -1,3 +1,12 @@
+"""
+
+  HandlerManager for tornado
+  This class search in the CS all services who use HTTPS and load them.
+
+  Must be used with the TornadoServer
+
+"""
+
 from tornado.web import url as TornadoURL, RequestHandler
 
 
@@ -5,8 +14,21 @@ from DIRAC.Core.Utilities.ObjectLoader import ObjectLoader
 from DIRAC import gLogger, S_ERROR, S_OK, gConfig
 from DIRAC.Core.Base.private.ModuleLoader import ModuleLoader
 from DIRAC.ConfigurationSystem.Client import PathFinder
-from DIRAC.ConfigurationSystem.Client.PathFinder import getServiceURL
 
+def urlFinder(module):
+  """
+    Try to guess the url with module name
+
+    :param module: path writed like import (e.g. "DIRAC.something.something")
+  """
+  sections = module.split('.')
+  for section in sections:
+    # This condition is a bit long
+    # We search something who look like <...>.<component>System.<...>.<service>Handler
+    # If find we return /<component>/<service>
+    if(section.find("System") > 0) and (sections[-1].find('Handler') > 0):
+      return "/%s/%s" % (section.replace("System", ""), sections[-1].replace("Handler", ""))
+  return None
 
 class HandlerManager(object):
   """
@@ -46,7 +68,7 @@ class HandlerManager(object):
         # SECOND TRY: URL can be deduced from path
         except AttributeError:
           gLogger.debug("No location defined for %s try to get it from path" % handlerTuple[0])
-          url = self.__urlFinder(handlerTuple[0])
+          url = urlFinder(handlerTuple[0])
 
       # We add "/" if missing at begin, e.g. we found "Framework/Service"
       # URL can't be relative in Tornado
@@ -81,7 +103,6 @@ class HandlerManager(object):
         if services['OK']:
           for service in services['Value']:
             newservice = ("%s/%s" % (system, service))
-            newserviceurl = getServiceURL(newservice)
 
             # print '\n\n/Systems/%s/%s/Services/%s/Tornado' % (system, instance, service)
             isHTTPS = gConfig.getValue('/Systems/%s/%s/Services/%s/Protocol' % (system, instance, service))
@@ -114,20 +135,6 @@ class HandlerManager(object):
       self.__addHandler((module['loadName'], module['classObj']), url)
     return S_OK()
 
-  def __urlFinder(self, module):
-    """
-      Try to guess the url with module name
-
-      :param module: path writed like import (e.g. "DIRAC.something.something")
-    """
-    sections = module.split('.')
-    for section in sections:
-      # This condition is a bit long
-      # We search something who look like <...>.<component>System.<...>.<service>Handler
-      # If find we return /<component>/<service>
-      if(section.find("System") > 0) and (sections[-1].find('Handler') > 0):
-        return "/%s/%s" % (section.replace("System", ""), sections[-1].replace("Handler", ""))
-    return None
 
   def getHandlersURLs(self):
     """

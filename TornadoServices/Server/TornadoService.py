@@ -119,7 +119,6 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
       gLogger.error(e)
       return S_ERROR('Error while initializing')
 
-
     cls.__FLAG_INIT_DONE = True
     return S_OK()
 
@@ -130,8 +129,8 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
       And it must be a class method. This method is called only one time,
       at the first request
 
-      :param dict ServiceInfoDict: infos about services, it contains 
-                                    'serviceName', 'serviceSectionPath', 
+      :param dict ServiceInfoDict: infos about services, it contains
+                                    'serviceName', 'serviceSectionPath',
                                     'csPaths'and 'URL'
     """
     pass
@@ -155,6 +154,7 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
     self.credDict = None
     self.authorized = False
     self.method = None
+    self._httpError = HTTPErrorCodes.HTTP_OK
     if not self.__FLAG_INIT_DONE:
       init = self.__initializeService(self.srv_getURL(), self.request.full_url(), debug)
       if not init['OK']:
@@ -166,15 +166,18 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
     # self._monitor.setComponentName(self.srv_getURL())
     self._monitor.setComponentExtraParam('queries', self._stats['requests'])
     self._monitor.addMark("Queries")
-    self._httpError = HTTPErrorCodes.HTTP_OK
+    # By default we say there is no error ("200 OK"), changed if an error occured
     return True
 
   def prepare(self):
     """
       prepare the request, it read certificates and check authorizations.
     """
+    self.method = self.get_argument("method")
+    self.log.notice("Incoming request on /%s: %s" % (self._serviceName, self.method))
 
-    # Init of service must be checked here, because if it have crashed we are not able to end request at initialization (can't write on client)
+    # Init of service must be checked here, because if it have crashed we are
+    # not able to end request at initialization (can't write on client)
     if not self.__FLAG_INIT_DONE:
       error = encode("Service can't be initialized !")
       self.__write_return(error)
@@ -182,14 +185,12 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
 
     try:
       self.credDict = self.gatherPeerCredentials()
-    except Exception: 
-      # if an error occur when reading certificates
-      # it can be strange but the RFC, in HTTP, say's that when error happend 
+    except Exception: # pylint: disable=broad-except
+      # If an error occur when reading certificates we close connection
+      # It can be strange but the RFC, for HTTP, say's that when error happend
       # before authenfication we return 401 UNAUTHORIZED instead of 403 FORBIDDEN
       self.reportUnauthorizedAccess(HTTPErrorCodes.HTTP_UNAUTHORIZED)
 
-    self.method = self.get_argument("method")
-    self.log.notice("Incoming request on /%s: %s" % (self._serviceName, self.method))
     try:
       hardcodedAuth = getattr(self, 'auth_' + self.method)
     except AttributeError:
@@ -293,7 +294,6 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
       Load client certchain in DIRAC and extract informations
     """
 
-    # TODO a remplacer
     chainAsText = self.request.connection.stream.socket.get_peer_cert().as_pem()
     peerChain = X509Chain()
 
@@ -396,11 +396,10 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
 ####
 #
 #  Utilities methods
-#  From DIRAC.Core.DISET.requestHandler to get same interface
+#  From DIRAC.Core.DISET.requestHandler to get same interface in the handlers
 #  Adapted for Tornado
-#   TODO : Some cleaning here / Delete useless functions
+#
 ####
-
 
   @classmethod
   def srv_getCSOption(cls, optionName, defaultValue=False):

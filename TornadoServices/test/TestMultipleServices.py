@@ -4,6 +4,28 @@
 
     You must have 2 separate tornadohandlers and this services must be in dirac.cfg like normal service
     Only change: dips:// became https://  and Protocol = dips became Protocol = https
+
+    ```
+    Services
+      {
+        User
+        {
+          Protocol = https
+        }
+        DummyTornado
+        {
+          Protocol = https
+        }
+      }
+    ```
+
+    ```
+    URLs
+      {
+        User = https://MrBoincHost/Framework/User #Port not precised because we use default one
+        DummyTornado = https://MrBoincHost/Framework/DummyTornado 
+      }
+    ```
 """
 from DIRAC.Core.Base.Script import parseCommandLine
 parseCommandLine()

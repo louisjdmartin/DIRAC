@@ -1,3 +1,9 @@
+"""
+  This class contain all functionnality of refresher who needs to work in the background.
+  It use thread and it's the original script from DIRAC (writed long time ago)
+  This separation result of code re-factorisation needed to include altenative refresher for Tornado
+"""
+
 import threading
 import thread
 import time
@@ -12,7 +18,6 @@ class RefresherThread(threading.Thread):
     All background task defined to use threads
   """
   def __init__(self):
-    print "THREAD"
     threading.Thread.__init__(self)
     self._triggeredRefreshLock = LockRing.LockRing().getLock()
 
@@ -78,7 +83,6 @@ class RefresherThread(threading.Thread):
     """
       Daemonize the background tasks
     """ 
-    print "DAEMONIZE in refresherThread"
     
     self.setDaemon(1)
     self.start()

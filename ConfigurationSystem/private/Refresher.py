@@ -32,7 +32,7 @@ class TornadoRefresher(RefresherBase, RefresherIOLoop):
     RefresherBase.__init__(self)
 
 
-if os.environ.get('USE_TORNADO_REFRESHER', 'NO') == 'YES':
+if os.environ.get('USE_TORNADO_IOLOOP', 'false').lower() == 'true':
   gRefresher = TornadoRefresher()
 else:
   gRefresher = Refresher()

@@ -6,18 +6,22 @@
 # Just run this script to start Tornado and all services
 # You can add the port if needed, if not define get it from dirac.cfg or use default value (443)
 
-
-import os
-os.environ['USE_TORNADO_REFRESHER'] = "YES"
-
-
 __RCSID__ = "$Id$"
+
+
+# Must be define BEFORE any dirac import
+import os
 import sys
-from DIRAC.ConfigurationSystem.Client.LocalConfiguration import LocalConfiguration
+os.environ['USE_TORNADO_IOLOOP'] = "True"
+
+
 from DIRAC.FrameworkSystem.Client.Logger import gLogger
 from DIRAC.TornadoServices.Server.TornadoServer import TornadoServer
+from DIRAC.Core.Base import Script
 
-localCfg = LocalConfiguration()
+Script.parseCommandLine(ignoreErrors = True)
+
+gLogger.initialize('Tornado', "/")
 
 port = None
 if len(sys.argv)>1:
@@ -27,16 +31,7 @@ if len(sys.argv)>1:
     pass
 
 
-localCfg.addMandatoryEntry("/DIRAC/Setup")
 
-localCfg.addDefaultEntry("LogLevel", "INFO")
-localCfg.addDefaultEntry("LogColor", True)
-resultDict = localCfg.loadUserData()
-gLogger.initialize('Tornado', "/")
-if not resultDict['OK']:
-  gLogger.error("There were errors when loading configuration", resultDict['Message'])
-  sys.exit(1)
 
-from DIRAC.TornadoServices.Server.TornadoServer import TornadoServer
 serverToLaunch = TornadoServer(port=port)
 serverToLaunch.startTornado()
