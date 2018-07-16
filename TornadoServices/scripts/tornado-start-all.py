@@ -7,7 +7,10 @@
 # You can add the port if needed, if not define get it from dirac.cfg or use default value (443)
 
 
-"""
+import os
+os.environ['USE_TORNADO_REFRESHER'] = "YES"
+
+
 __RCSID__ = "$Id$"
 import sys
 from DIRAC.ConfigurationSystem.Client.LocalConfiguration import LocalConfiguration
@@ -33,17 +36,6 @@ gLogger.initialize('Tornado', "/")
 if not resultDict['OK']:
   gLogger.error("There were errors when loading configuration", resultDict['Message'])
   sys.exit(1)
-
-"""
-import sys
-import os
-os.environ['USE_TORNADO_REFRESHER'] = "YES"
-port = None
-if len(sys.argv)>1:
-  try:
-    port = int(sys.argv[1])
-  except ValueError:
-    pass
 
 from DIRAC.TornadoServices.Server.TornadoServer import TornadoServer
 serverToLaunch = TornadoServer(port=port)

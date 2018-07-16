@@ -24,26 +24,7 @@ class RefresherIOLoop(object):
     Refresher adapted to work with Tornado had its IOLoop
   """
 
-  @gen.coroutine
-  def __run(self):
-    """
-      Trigger the autorefresh when configuration is expired
-    """
-    while self._automaticUpdate:
-      yield gen.sleep(gConfigurationData.getPropagationTime())
-      # Publish step is blocking so we have to run it in executor
-      # If we are not doing it, when master try to ping we block the IOLoop
-      yield IOLoop.current().run_in_executor(None, self.__AutoRefresh)
-
-  @gen.coroutine
-  def __AutoRefresh(self):
-    """
-      Auto refresh the configuration
-      We disable pylint error because this class must be instanciated by a mixin to define the methods
-    """
-    if self._refreshEnabled: #pylint: disable=no-member
-      if not self._refreshAndPublish(): #pylint: disable=no-member
-        gLogger.error("Can't refresh configuration from any source")
+ 
 
   def refreshConfigurationIfNeeded(self):
     """
@@ -78,6 +59,27 @@ class RefresherIOLoop(object):
     self._automaticUpdate = True
 
     IOLoop.current().spawn_callback(self.__run)
+
+  @gen.coroutine
+  def __run(self):
+    """
+      Trigger the autorefresh when configuration is expired
+    """
+    while self._automaticUpdate:
+      yield gen.sleep(gConfigurationData.getPropagationTime())
+      # Publish step is blocking so we have to run it in executor
+      # If we are not doing it, when master try to ping we block the IOLoop
+      yield IOLoop.current().run_in_executor(None, self.__AutoRefresh)
+
+  @gen.coroutine
+  def __AutoRefresh(self):
+    """
+      Auto refresh the configuration
+      We disable pylint error because this class must be instanciated by a mixin to define the methods
+    """
+    if self._refreshEnabled: #pylint: disable=no-member
+      if not self._refreshAndPublish(): #pylint: disable=no-member
+        gLogger.error("Can't refresh configuration from any source")
 
   def daemonize(self):
     IOLoop.current().spawn_callback(self.__run)
