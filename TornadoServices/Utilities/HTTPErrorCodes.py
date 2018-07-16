@@ -1,3 +1,9 @@
+"""
+    List of HTTP codes
+
+    https://tools.ietf.org/html/rfc2616#section-6.1.1
+"""
+
 # Success code
 HTTP_OK = 200
 
