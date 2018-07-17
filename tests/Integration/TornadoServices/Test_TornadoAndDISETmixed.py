@@ -100,6 +100,8 @@
 from DIRAC.Core.Base import Script
 Script.parseCommandLine()
 
+import time
+
 from string import printable
 
 from hypothesis import given, settings
@@ -108,6 +110,9 @@ from hypothesis.strategies import text
 from DIRAC.TornadoServices.Client.RPCClientSelector import RPCClientSelector as RPCClient
 from DIRAC.Core.Utilities.DErrno import ENOAUTH
 from DIRAC import S_ERROR
+from DIRAC.ConfigurationSystem.Client.CSAPI import CSAPI
+from DIRAC.ConfigurationSystem.Client.ConfigurationData import gConfigurationData
+
 
 from pytest import mark
 parametrize = mark.parametrize
@@ -140,9 +145,39 @@ def test_ping():
   assert service.ping()['OK'] == True
 
 
-@settings(deadline=None, max_examples=42)
+@settings(deadline=None, max_examples=4)
 @given(data=text(printable, max_size=64))
 def test_echo(data):
   service = RPCClient("Framework/User")
 
   assert service.echo(data)['Value'] == data
+
+@settings(deadline=None, max_examples=1)
+@given(value1=text(printable, max_size=64), value2=text(printable, max_size=64))
+def test_configurationAutoUpdate(value1, value2):
+  """
+    Test if service refresh his configuration. It sent a random value to the CS
+    and check if Service can return it.
+
+    This test can be very long depending on refresh time (5minutes by default)
+    You can set following values in configuration (before starting service/CS)
+    They define refresh time in seconds, 300 by default (600 for SlavesGraceTime)
+    - DIRAC/Configuration/RefreshTime
+    - DIRAC/Configuration/PropagationTime
+    - DIRAC/Configuration/SlavesGraceTime
+  """
+  csapi = CSAPI()
+
+  ### SETTING FIRST VALUE ###
+  csapi.modifyValue("/DIRAC/Configuration/TestUpdateValue", value1)
+  csapi.commitChanges()
+  # Wait for automatic refresh (+1 to be sure that request is done)
+  time.sleep(gConfigurationData.getPropagationTime()+1)
+  RPCClient("Framework/User").getTestValue()
+  assert RPCClient("Framework/User").getTestValue()['Value'] == value1
+
+  ### SETTING SECOND VALUE ###
+  csapi.modifyValue("/DIRAC/Configuration/TestUpdateValue", value2)
+  csapi.commitChanges()
+  time.sleep(gConfigurationData.getPropagationTime()+1)
+  assert RPCClient("Framework/User").getTestValue()['Value'] == value2

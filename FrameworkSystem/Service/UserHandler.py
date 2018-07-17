@@ -1,11 +1,10 @@
 from DIRAC.TornadoServices.Server.TornadoService import TornadoService
 from DIRAC import S_OK, gLogger
 from DIRAC.FrameworkSystem.Service.UserDB import UserDB
-
+from DIRAC import gConfig
 
 class UserHandler(TornadoService):
 
-  LOCATION = "/Framework/User"
 
   @classmethod
   def initializeHandler(cls, serviceInfoDict): 
@@ -40,7 +39,6 @@ class UserHandler(TornadoService):
     return self.userDB.editUser(uid, value)
 
   auth_getUserName = ['all']
-  types_getUserName = [int]
 
   def export_getUserName(self, uid):
     """
@@ -62,6 +60,9 @@ class UserHandler(TornadoService):
     return self.userDB.listUsers()
 
   auth_unauthorized = ['nobody']
-  types_unauthorized = []
   def export_unauthorized(self):
     return S_OK()
+
+  auth_getValue = ['all']
+  def export_getTestValue(self):
+    return S_OK(gConfig.getValue('/DIRAC/Configuration/TestUpdateValue'))

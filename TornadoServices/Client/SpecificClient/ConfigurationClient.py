@@ -40,8 +40,8 @@ class ConfigurationClient(object):
       :returns str:Configuration data, compressed
     """
     retVal = self.__rpcClient.getCompressedData()
-    if self.__isTornadoClient and retVal['OK'] and 'data' in retVal['Value']:
-      retVal['Value']['data'] = b64decode(retVal['Value']['data'])
+    if self.__isTornadoClient and retVal['OK']:
+      retVal['Value'] = b64decode(retVal['Value'])
     return retVal
 
   def getCompressedDataIfNewer(self, sClientVersion):

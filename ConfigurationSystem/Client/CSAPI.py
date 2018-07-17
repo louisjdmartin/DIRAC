@@ -4,7 +4,9 @@
 """
 
 from DIRAC import gLogger, gConfig, S_OK, S_ERROR
-from DIRAC.Core.DISET.RPCClient import RPCClient
+#from DIRAC.Core.DISET.RPCClient import RPCClient
+#LOUIS
+from DIRAC.TornadoServices.Client.SpecificClient.ConfigurationClient import ConfigurationClient as RPCClient
 from DIRAC.Core.Utilities import List, Time
 from DIRAC.Core.Security.X509Chain import X509Chain
 from DIRAC.Core.Security import Locations
