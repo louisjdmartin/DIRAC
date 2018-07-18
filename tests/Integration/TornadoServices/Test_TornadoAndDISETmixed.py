@@ -95,6 +95,14 @@
               }
             }
           ```
+
+          
+    This test can be very long depending on refresh time (5minutes by default)
+    You can set following values in configuration (before starting service/CS)
+    They define refresh time in seconds, 300 by default (600 for SlavesGraceTime)
+    - DIRAC/Configuration/RefreshTime
+    - DIRAC/Configuration/PropagationTime
+    - DIRAC/Configuration/SlavesGraceTime
 """
 
 from DIRAC.Core.Base import Script
@@ -159,12 +167,6 @@ def test_configurationAutoUpdate(value1, value2):
     Test if service refresh his configuration. It sent a random value to the CS
     and check if Service can return it.
 
-    This test can be very long depending on refresh time (5minutes by default)
-    You can set following values in configuration (before starting service/CS)
-    They define refresh time in seconds, 300 by default (600 for SlavesGraceTime)
-    - DIRAC/Configuration/RefreshTime
-    - DIRAC/Configuration/PropagationTime
-    - DIRAC/Configuration/SlavesGraceTime
   """
   csapi = CSAPI()
 
