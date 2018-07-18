@@ -19,7 +19,24 @@ from DIRAC.FrameworkSystem.Client.Logger import gLogger
 from DIRAC.TornadoServices.Server.TornadoServer import TornadoServer
 from DIRAC.Core.Base import Script
 
-Script.parseCommandLine(ignoreErrors = True)
+from DIRAC.ConfigurationSystem.Client.LocalConfiguration import LocalConfiguration
+
+from DIRAC.Core.Utilities.DErrno import includeExtensionErrors
+
+#Script.parseCommandLine(ignoreErrors = True)
+localCfg=LocalConfiguration()
+localCfg.addMandatoryEntry( "/DIRAC/Setup" )
+localCfg.addDefaultEntry( "/DIRAC/Security/UseServerCertificate", "yes" )
+localCfg.addDefaultEntry( "LogLevel", "INFO" )
+localCfg.addDefaultEntry( "LogColor", True )
+resultDict = localCfg.loadUserData()
+if not resultDict[ 'OK' ]:
+  gLogger.initialize( serverName, "/" )
+  gLogger.error( "There were errors when loading configuration", resultDict[ 'Message' ] )
+  sys.exit( 1 )
+
+includeExtensionErrors()
+
 
 gLogger.initialize('Tornado', "/")
 

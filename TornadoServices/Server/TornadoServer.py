@@ -13,12 +13,12 @@ from socket import error as socketerror
 import M2Crypto
 
 # Patching -- Should disable pylint wrong-import-position...
-from tornado_m2crypto.m2netutil import m2_wrap_socket  # pylint: disable=wrong-import-position
-import tornado.netutil  # pylint: disable=wrong-import-position
-tornado.netutil.ssl_wrap_socket = m2_wrap_socket  # pylint: disable=wrong-import-position
-
-import tornado.httputil  # pylint: disable=wrong-import-position
-tornado.httputil.HTTPServerRequest.configure('tornado_m2crypto.m2httputil.M2HTTPServerRequest')  # pylint: disable=wrong-import-position
+#from tornado_m2crypto.m2netutil import m2_wrap_socket  # pylint: disable=wrong-import-position
+#import tornado.netutil  # pylint: disable=wrong-import-position
+#tornado.netutil.ssl_wrap_socket = m2_wrap_socket  # pylint: disable=wrong-import-position
+#
+#import tornado.httputil  # pylint: disable=wrong-import-position
+#tornado.httputil.HTTPServerRequest.configure('tornado_m2crypto.m2httputil.M2HTTPServerRequest')  # pylint: disable=wrong-import-position
 import tornado.iostream  # pylint: disable=wrong-import-position
 tornado.iostream.SSLIOStream.configure('tornado_m2crypto.m2iostream.M2IOStream')  # pylint: disable=wrong-import-position
 
@@ -123,9 +123,7 @@ class TornadoServer(object):
     router = Application(self.urls, debug=self.debug)
 
     certs = Locations.getHostCertificateAndKeyLocation()
-
-    ca = Locations.getCAsLocation()
-
+    ca = Locations.getCAsLocation()    
     ssl_options = {
         'certfile': certs[0],
         'keyfile': certs[1],
