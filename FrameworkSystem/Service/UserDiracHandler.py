@@ -56,7 +56,7 @@ class UserDiracHandler(RequestHandler):
   def export_unauthorized(self):
     return S_OK()
 
-  auth_getValue = ['all']
-  types_getValue = []
+  auth_getTestValue = ['all']
+  types_getTestValue = []
   def export_getTestValue(self):
     return S_OK(gConfig.getValue('/DIRAC/Configuration/TestUpdateValue'))
