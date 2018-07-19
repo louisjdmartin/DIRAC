@@ -20,13 +20,14 @@ from DIRAC.TornadoServices.Server.TornadoServer import TornadoServer
 from DIRAC.Core.Base import Script
 
 from DIRAC.ConfigurationSystem.Client.LocalConfiguration import LocalConfiguration
-from DIRAC.ConfigurationSystem.Client.ConfigurationData import gConfigurationData
 
 from DIRAC.Core.Utilities.DErrno import includeExtensionErrors
 
+from DIRAC.ConfigurationSystem.Client.ConfigurationData import gConfigurationData
+from DIRAC.ConfigurationSystem.private.Refresher import gRefresher
+
 if gConfigurationData.isMaster():
-  gLogger.fatal("You can't run the CS and services in the same server!")
-  sys.exit(0)
+  gRefresher.disable()
 
 #Script.parseCommandLine(ignoreErrors = True)
 localCfg=LocalConfiguration()
@@ -55,5 +56,5 @@ if len(sys.argv)>1:
 
 
 
-serverToLaunch = TornadoServer(port=port)
+serverToLaunch = TornadoServer(port=port, services='Configuration/Server')
 serverToLaunch.startTornado()
