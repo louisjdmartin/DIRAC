@@ -4,7 +4,8 @@ from DIRAC.TornadoServices.Client.RPCClientSelector import RPCClientSelector
 from time import time
 from random import randint
 import sys
-
+import os
+#from DIRAC import S_OK
 
 class Transaction(object):
   def __init__(self):
@@ -13,8 +14,9 @@ class Transaction(object):
     #  self.client = RPCClient('Framework/User')
     #else:
     #  self.client = TornadoClient('Framework/User')
-    self.client = RPCClientSelector('Framework/User')
+    self.client = RPCClientSelector('Framework/User', timeout=30)
+    #print os.environ['PYTHONOPTIMIZE']
     return
 
   def run(self):
-    self.client.ping()    
+    assert (self.client.ping()['OK'] == True), 'error'
