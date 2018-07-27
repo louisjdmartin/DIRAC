@@ -107,11 +107,11 @@ Configuration is mostly the same as before, you just have to define ``Protocol``
     
     Tornado
     {
-    DevInstance
-    {
-      
-      Port = 4444 
-    }
+      DevInstance
+      {
+        
+        Port = 4444 
+      }
     }
     
     Framework
@@ -202,6 +202,7 @@ For performance test unset ``PYTHONOPTIMIZE`` if it is set in your environement:
 
 
 Then you have to start some clients (adapt the port)::
+
   cd /opt/dirac/DIRAC/test/Integration/TornadoServices
   multimech-run perf-test-ping -p 9000 -b 0.0.0.0
 
