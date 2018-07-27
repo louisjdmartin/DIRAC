@@ -1,7 +1,9 @@
 """
     (Case 1) This is a integration test with a Service under Tornado(tornado-start-all) AND a configuration server under DISET (dirac-service)
 
-    (Case 2) We run the same test with Service under DISET and CS under Tornado
+    (Case 2) We run the same test with Service under DISET and CS under Tornado, use tornado-start-CS to start the CS.
+
+    [tornado-start-all and tornado-start-CS can be found at DIRAC/TornadoServices/scripts]
 
 
     We test with

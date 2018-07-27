@@ -3,16 +3,25 @@ import csv
 import matplotlib.pyplot as plt
 import sys
 
-### FOR DISPLAY
+
+### BEGIN OF CONFIGURATION ###
+
+### FOR DISPLAY - Enter settings relative to test
 system = 'Test ping - timeout=30 - Diset Server'
 multimech_thread = 60
 multimech_time = 300
 multimech_rampup = 200
 multimech_clients = 8
 server_maxThreads = 20
+
+### For this line, use vmstat and copy the free memory
+memoryOffset = 0
+
 plt.suptitle('%s with %d threads\n %d threads/client - %d clients (total %d threads) \n duration: %dsec - rampup %dsec \n latency between client starts: 2s'%
   (system, server_maxThreads,multimech_thread,multimech_clients,multimech_clients*multimech_thread,multimech_time,multimech_rampup))
 
+
+### END OF CONFIG
 
 
 def get_results():
@@ -66,7 +75,8 @@ def process_data(results, serverStats):
 
   # Initializing all data list
   (time, requestTime, CPU, RAM, reqPerSec, errorRate, loadAvg) = ([], [], [], [], [], [], [])
-  initialRAM = int(serverStats[str(begin)][5])
+  global memoryOffset
+  initialRAM = memoryOffset
 
   for t in range(begin, end): # We determine datas time with timestamp
     # Offset to set starttime = 0
@@ -149,7 +159,7 @@ def displayGraph(results, serverStats):
   plt.plot(time,loadAvg, '*', label="Load average * 100")
   plt.legend()
   plt.subplot(223)
-  plt.plot(time,RAM, '*', label="Used Memory")
+  plt.plot(time,RAM, '*', label="Used Memory (bytes)")
   plt.legend()
   plt.subplot(224)
   plt.plot(time, reqPerSec, '*', label="Requests/sec")

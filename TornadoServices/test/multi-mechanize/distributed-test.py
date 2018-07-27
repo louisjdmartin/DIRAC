@@ -2,24 +2,34 @@ import xmlrpclib
 import time
 import csv
 import matplotlib.pyplot as plt
+import sys
+### BEGIN OF CONFIGURATION ###
 
-# We define the list of multimechanize servers...
-serversList = ['http://137.138.150.194:9000', 'http://137.138.150.194:9002', 'http://137.138.150.194:9003', 'http://137.138.150.194:9004', 'http://137.138.150.194:9005', 'http://137.138.150.194:9006', 'http://137.138.150.194:9007', 'http://137.138.150.194:9008'] 
+# Add all machine who have multimechanize client
+serversList = ['137.138.150.194', 'server2'] 
+# Each multimechanize client must listen the same ports, add the ports here
+portList = ['9000','9001']
+
+## END OF CONFIG
 
 servers = []
 
 print "Starting test servers...."
-for server in serversList:
-  servers.append(xmlrpclib.ServerProxy(server))
+for port in portList:
+  for server in serversList:
+    servers.append(xmlrpclib.ServerProxy("http://%s:%s"(server,port)))
+    servers[-1].run_test()
   time.sleep(2)
-  servers[-1].run_test()
 
 
 print "Waiting for results..."
 while servers[-1].get_results() == 'Results Not Available':
   time.sleep(1)
 
-output = str(time.time())
+try:
+  output = sys.argv[1]
+except KeyError
+  output = str(time.time())
 fileCount = 0
 for server in servers:
   fileCount += 1

@@ -1,0 +1,16 @@
+#!/bin/bash
+# timestamp; vamstat -a [17 values]; /proc/loadavg [5 values]
+vmstat -a -n 1 | while read line;
+do
+   # If line is not a header
+   if [ "$(echo $line | grep -c 0)" -ne "0"  ];
+   then
+     # print timestamp
+     echo -n "$(date +%s)";
+     # print vmstat info
+     echo -n ";$line" | sed -E 's/ +/;/g';
+     # add load info
+     echo ";$(cat /proc/loadavg | awk {'print $1,$2,$3'}|tr ' ' ';')";
+     
+   fi;
+done
