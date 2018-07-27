@@ -210,4 +210,4 @@ Modify first lines of ``DIRAC/TornadoServices/test/multi-mechanize/distributed-t
 
 On the server start ``DIRAC/test/Integration/TornadoServices/getCPUInfos`` (redirect output to a file)
 
-Run ``distributed-test.py [NameOfYourTest]`` at the end of execution, the command to plot is given. Before executing command, copy output of ``getCPUInfos`` on ``/tmp/results`` (on your local machine).
+Run ``distributed-test.py [NameOfYourTest]`` at the end of execution, the command to plot is given. Before executing command, copy output of ``getCPUInfos`` on ``/tmp/results.txt`` (on your local machine).
