@@ -5,11 +5,13 @@ from DIRAC import gConfig
 
 class UserHandler(TornadoService):
 
+  """
+    A handler designed for testing Tornado by implementing a basic access to database
+  """
 
   @classmethod
   def initializeHandler(cls, serviceInfoDict): 
     cls.userDB = UserDB()
-    #itmustcrash()
     return S_OK()
 
 

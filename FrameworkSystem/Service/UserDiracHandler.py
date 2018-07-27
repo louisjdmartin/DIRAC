@@ -9,7 +9,10 @@ from DIRAC.FrameworkSystem.Service.UserDB import UserDB
 from DIRAC import gConfig
 
 class UserDiracHandler(RequestHandler):
-  """ Dummy service for testing new DIRAC protocol (DISET -> HTTPS) """
+  """
+    A handler designed for testing Tornado by implementing a basic access to database
+    Designed to compare Diset and Tornado
+  """
 
   @classmethod
   def initializeHandler(cls, serviceInfo):
