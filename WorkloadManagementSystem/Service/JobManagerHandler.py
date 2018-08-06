@@ -264,7 +264,9 @@ class JobManagerHandler(RequestHandler):
     return not result['Value']
 
 ###########################################################################
-  def __getJobList(self, jobInput):
+
+  @staticmethod
+  def __getJobList(jobInput):
     """ Evaluate the jobInput into a list of ints
 
         :param jobInput: one or more job IDs in int or str form
@@ -329,7 +331,8 @@ class JobManagerHandler(RequestHandler):
     self.__sendJobsToOptimizationMind(validJobList)
     return result
 
-  def __deleteJob(self, jobID):
+  @staticmethod
+  def __deleteJob(jobID):
     """ Delete one job
     """
     result = gJobDB.setJobStatus(jobID, 'Deleted', 'Checking accounting')
@@ -346,17 +349,17 @@ class JobManagerHandler(RequestHandler):
       gLogger.error("Failed to get Pilots for JobID", result['Message'])
       return result
     for pilot in result['Value']:
-      res = gPilotAgentsDB.getJobsForPilot(pilot['PilotID'])
+      res = gPilotAgentsDB.getJobsForPilot(pilot)
       if not res['OK']:
         gLogger.error("Failed to get jobs for pilot", res['Message'])
         return res
       if not res['Value']:  # if list of jobs for pilot is empty, delete pilot and pilotslogging
-        result = gPilotAgentsDB.getPilotInfo(pilotID=pilot['PilotID'])
+        result = gPilotAgentsDB.getPilotInfo(pilotID=pilot)
         if not result['OK']:
           gLogger.error("Failed to get pilot info", result['Message'])
           return result
         pilotRef = result[0]['PilotJobReference']
-        ret = gPilotAgentsDB.deletePilot(pilot['PilotID'])
+        ret = gPilotAgentsDB.deletePilot(pilot)
         if not ret['OK']:
           gLogger.error("Failed to delete pilot from PilotAgentsDB", ret['Message'])
           return ret
@@ -368,7 +371,8 @@ class JobManagerHandler(RequestHandler):
 
     return S_OK()
 
-  def __killJob(self, jobID, sendKillCommand=True):
+  @staticmethod
+  def __killJob(jobID, sendKillCommand=True):
     """  Kill one job
     """
     if sendKillCommand:

@@ -75,16 +75,7 @@ FTS3Agent
 
 This agent is in charge of performing and monitoring all the transfers. Note that this agent can be duplicated as many time as you wish.
 
-There are various configuration options for this system:
-
-* `OperationBulkSize` (default 20): How many Operation we will treat in one loop
-* `JobBulkSize` (default 20): How many Job we will monitor in one loop
-* `MaxFilesPerJob` (default 100): Max number of files to go in a single job
-* `maxAttemptsPerFile` (default 256): Max number of attempt per file
-* `DeleteGraceDays` (default 180): days before removing jobs
-* `DeleteLimitPerCycle` (default 100): Max number of deletes per cycle
-* `KickAssignedHours ` (default 1): hours before kicking jobs with old assignment tag
-* `KickLimitPerCycle` (default 100):  Max number of kicks per cycle
+See :py:mod:`~DIRAC.DataManagementSystem.Agent.FTS3Agent` for configuration details.
 
 FTS3 system overview
 --------------------
@@ -97,6 +88,7 @@ These FTS3Operation contain a list of FTS3File. An FTS3File is for a specific ta
 Note that by default, the FTS3Agent is meant to run without shifter proxy. It will however download the proxy of the user submitting the job in order to delegate it to FTS. This also means that it is not able to perform registration in the DFC, and relies on Operation callback for that.
 
 
+=====================
 FTS3TransferOperation
 =====================
 
@@ -111,6 +103,7 @@ The grouping into jobs is done following this logic:
 Once the FTS jobs have been executed, and all the operation is completed, the callback takes place. The callback consists in fetching the RMS request which submitted the FTS3Operation, update the status of the RMS files, and insert a Registration Operation.
 Note that since the multiple targets are grouped in a single RMS operation, failing to transfer one file t one destination will result in the failure of the Operation. However, there is one Registration operation per target, and hence correctly transferred files will be registered.
 
+====================
 FTS3StagingOperation
 ====================
 

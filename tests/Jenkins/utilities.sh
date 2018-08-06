@@ -418,14 +418,24 @@ function diracInstall(){
 }
 
 #This is what VOs may replace
+# If DIRACOSVER env variable is defined, use diracos
 function diracInstallCommand(){
-  $SERVERINSTALLDIR/dirac-install -r `cat $SERVERINSTALLDIR/dirac.version` -t fullserver -d
+   # If DIRACOSVER is not defined, use Externals
+   if [ -z $DIRACOSVER ];
+   then
+     echo "Installing with externals";
+     $SERVERINSTALLDIR/dirac-install -r `cat $SERVERINSTALLDIR/dirac.version` -t fullserver -d
+   else
+     echo "Installing with DIRACOS $DIRACOSVER";
+     $SERVERINSTALLDIR/dirac-install -r `cat $SERVERINSTALLDIR/dirac.version` -t fullserver -d --dirac-os --dirac-os-version=$DIRACOSVER
+   fi
 }
 
 
 ####################################################
 # This installs the DIRAC client
 # it needs a $DIRAC_RELEASE env var defined
+# if DIRACOSVER env var is defined, it will install dirac with DIRACOS
 
 function installDIRAC(){
 
@@ -442,7 +452,17 @@ function installDIRAC(){
   fi
 
   # actually installing
-  ./dirac-install -r $DIRAC_RELEASE -t client $DEBUG
+  # If DIRACOSVER is not defined, use exterals
+  if [ -z $DIRACOSVER ];
+  then
+    echo "Installing with Externals";
+    ./dirac-install -r $DIRAC_RELEASE -t client $DEBUG
+  else
+    echo "Installing with DIRACOS $DIRACOSVER";
+    ./dirac-install -r $DIRAC_RELEASE -t client --dirac-os --dirac-os-version=$DIRACOSVER $DEBUG
+  fi
+
+
   if [ $? -ne 0 ]
   then
     echo 'ERROR: DIRAC client installation failed'
@@ -539,14 +559,65 @@ function prepareForServer(){
 #-------------------------------------------------------------------------------
 
 
+# function generateCA()
+#
+# This generates the CA that will be used to sign the server and client certificates
+
+function generateCA(){
+   echo '==> [generateCA]'
+
+   mkdir -p $SERVERINSTALLDIR/etc/grid-security/certificates
+   mkdir -p $SERVERINSTALLDIR/etc/grid-security/ca/
+   cd $SERVERINSTALLDIR/etc/grid-security/ca
+   if [ $? -ne 0 ]
+   then
+     echo 'ERROR: cannot change to ' $SERVERINSTALLDIR/etc/grid-security/ca
+     return
+   fi
+
+   # Initialize the ca
+   mkdir -p newcerts certs crl
+   touch index.txt
+   echo 1000 > serial
+   echo 1000 > crlnumber
+
+   # Create the CA key
+   openssl genrsa -out ca.key.pem 2048            # for unencrypted key
+   chmod 400 ca.key.pem
+
+
+   # Prepare OpenSSL config file, it contains extensions to put into place,
+   # DN configuration, etc..
+   cp $CI_CONFIG/openssl_config_ca.cnf openssl_config_ca.cnf
+   sed -i "s|#GRIDSECURITY#|$SERVERINSTALLDIR/etc/grid-security|g" openssl_config_ca.cnf
+
+
+   # Generate the CA certificate
+   openssl req -config openssl_config_ca.cnf \
+               -key ca.key.pem \
+               -new -x509 \
+               -days 7300 \
+               -sha256 \
+               -extensions v3_ca \
+               -out ca.cert.pem
+
+   # Copy the CA to the list of trusted CA
+   cp ca.cert.pem $SERVERINSTALLDIR/etc/grid-security/certificates/
+
+   # Generate the hash link file required by openSSL to index CA certificates
+   caHash=$(openssl x509 -in ca.cert.pem -noout -hash)
+   ln -s $SERVERINSTALLDIR/etc/grid-security/certificates/ca.cert.pem $SERVERINSTALLDIR/etc/grid-security/certificates/"$caHash".0
+
+}
+
 #.............................................................................
 #
 # function generateCertificates
 #
 #   This function generates a random host certificate ( certificate and key ),
-#   which will be stored on etc/grid-security. As we need a CA to validate it,
-#   we simply copy it to the directory where the CA certificates are supposed
-#   to be stored etc/grid-security/certificates. In real, we'd copy them from
+#   which will be stored on etc/grid-security.
+#   We use the self signed CA created by generateCA function
+#   In real, we'd copy them from
 #   CVMFS:
 #     /cvmfs/grid.cern.ch/etc/grid-security/certificates
 #
@@ -565,29 +636,45 @@ function generateCertificates(){
     nDays=$1
   fi
 
-  mkdir -p $SERVERINSTALLDIR/etc/grid-security/certificates
-  cd $SERVERINSTALLDIR/etc/grid-security
+  mkdir -p $SERVERINSTALLDIR/etc/grid-security/
+  cd $SERVERINSTALLDIR/etc/grid-security/
   if [ $? -ne 0 ]
   then
-    echo 'ERROR: cannot change to ' $SERVERINSTALLDIR/etc/grid-security
+    echo 'ERROR: cannot change to ' $SERVERINSTALLDIR/etc/grid-security/
     return
   fi
 
   # Generate private RSA key
-  openssl genrsa -out hostkey.pem 2048 2>&1 /dev/null
+  openssl genrsa -out hostkey.pem 2048  &> /dev/null
+  chmod 400 hostkey.pem
 
   # Prepare OpenSSL config file, it contains extensions to put into place,
   # DN configuration, etc..
-  cp $CI_CONFIG/openssl_config openssl_config
-  fqdn=`hostname --fqdn`
-  sed -i "s/#hostname#/$fqdn/g" openssl_config
+  cp $CI_CONFIG/openssl_config_host.cnf openssl_config_host.cnf
 
-  # Generate X509 Certificate based on the private key and the OpenSSL configuration
+  # man hostname to see why we use --all-fqdns
+  # Note: if there's no dns entry for the localhost, the fqdns will be empty
+  # so we append to it the local hostname, and we take the first one in the list
+  fqdn=$((hostname --all-fqdn; hostname ) | paste -sd ' ' | awk {'print $1'})
+  sed -i "s/#hostname#/$fqdn/g" openssl_config_host.cnf
+
+  # Generate X509 Certificate request based on the private key and the OpenSSL configuration
   # file, valid for nDays days (default 1).
-  openssl req -new -x509 -key hostkey.pem -out hostcert.pem -days $nDays -config openssl_config
+  openssl req -config openssl_config_host.cnf \
+              -key hostkey.pem \
+              -new \
+              -sha256 \
+              -out request.csr.pem
 
-  # Copy hostcert, hostkey to certificates ( CA dir )
-  cp host{cert,key}.pem certificates/
+  # Sign it using the self generated CA
+  openssl ca -config $SERVERINSTALLDIR/etc/grid-security/ca/openssl_config_ca.cnf \
+       -days $nDays \
+       -extensions server_cert \
+       -batch \
+       -in request.csr.pem \
+       -out hostcert.pem
+
+
 
 }
 
@@ -602,6 +689,7 @@ function generateCertificates(){
 #     $SERVERINSTALLDIR/user
 #   The user will be called "ciuser". Do not confuse with the admin user,
 #   which is "ci".
+#   The argument that can be passed is the validity of the certificate
 #
 #   Additional info:
 #     http://acs.lbl.gov/~boverhof/openssl_certs.html
@@ -611,35 +699,54 @@ function generateCertificates(){
 function generateUserCredentials(){
   echo '==> [generateUserCredentials]'
 
+  # validity of the certificate
+  if [ -z ${1} ]
+  then
+    nDays=1
+  else
+    nDays=$1
+  fi
+
+
+  USERCERTDIR=$SERVERINSTALLDIR/user
   # Generate directory where to store credentials
-  mkdir -p $SERVERINSTALLDIR/user
-  cd $SERVERINSTALLDIR/user
+  mkdir -p $USERCERTDIR
+  cd $USERCERTDIR
   if [ $? -ne 0 ]
   then
-    echo 'ERROR: cannot change to ' $SERVERINSTALLDIR/user
+    echo 'ERROR: cannot change to ' $USERCERTDIR
     return
   fi
 
+  # What is that ?
   save=$-
   if [[ $save =~ e ]]
   then
     set +e
   fi
-  cp $CI_CONFIG/openssl_config_usr openssl_config_usr .
+
+  cp $CI_CONFIG/openssl_config_user.cnf $USERCERTDIR/openssl_config_user.cnf
   if [[ $save =~ e ]]
   then
     set -e
   fi
 
-  sed -i 's/#hostname#/ciuser/g' openssl_config_usr
-  openssl genrsa -out client.key 1024 2>&1 /dev/null
-  openssl req -key client.key -new -out client.req -config openssl_config_usr
-  # This is a little hack to make OpenSSL happy...
-  echo 00 > file.srl
+  openssl genrsa -out client.key 2048 2>&1 /dev/null
+  chmod 400 client.key
 
-  CA=$SERVERINSTALLDIR/etc/grid-security/certificates
+  openssl req -config $USERCERTDIR/openssl_config_user.cnf \
+              -key $USERCERTDIR/client.key \
+              -new \
+              -out $USERCERTDIR/client.req
 
-  openssl x509 -req -in client.req -CA $CA/hostcert.pem -CAkey $CA/hostkey.pem -CAserial file.srl -out $SERVERINSTALLDIR/user/client.pem
+  openssl ca -config $SERVERINSTALLDIR/etc/grid-security/ca/openssl_config_ca.cnf \
+             -extensions usr_cert \
+             -batch \
+             -days $nDays \
+             -in $USERCERTDIR/client.req \
+             -out $USERCERTDIR/client.pem
+
+
 }
 
 

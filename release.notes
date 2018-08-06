@@ -1,19 +1,116 @@
-[v6r21-pre1]
+[v7r0-pre2]
+
+*Accounting
+CHANGE: (Multi)AccountingDB - Grouping Type and Object loader together with the MonitoringSystem ones.
 
 *WorkloadManagementSystem
 
 NEW: Add JobElasticDB.py with getJobParameters and setJobParameter methods to work with ElasticSearch (ES) backend.
 NEW: Add gJobElasticDB variable and indicates the activation of ES backend.
 CHANGE: Modify export_getJobParameter(s) to report values from ES if available.
+CHANGE: (#3748) Reduced (removed, in fact) interactions of Optimizers with JobParameters, using only OptimizerParameters
+NEW: (#3760) Add Client/JobStateUpdateClient.py
+NEW: (#3760) Add Client/JobManagerClient.py
+CHANGE: (#3760) Use the above Client classes instead of invoking RPCClient()
+NEW: Added ES backend to WMSAdministratorHandler to get JobParameters.
+NEW: Added separate MySQL table for JobsStatus in JobDB, and modified code accordingly.
+CHANGE: ElasticJobDB.py: Modify setJobParameter method to register JobAttributes like Owner, Proxy, JobGroup etc.
+CHANGE: ElasticJobDB.py: added getJobParametersAndAttributes method to retrieve both parameters and attributes for a given JobID.
 
 *Core
-
-NEW: Add update method to the ElasticSearchDB.py to update or if not available create the values sent from the setJobParameter function. Uses update_by_query and index ES APIs.
-CHANGE: generateFullIndexName() method made static under the ElasticSearchDB class.
+NEW: (#3744) Add update method to the ElasticSearchDB.py to update or if not available create the values 
+     sent from the setJobParameter function. Uses update_by_query and index ES APIs.
+CHANGE: (#3744) generateFullIndexName() method made static under the ElasticSearchDB class.
+CHANGE: (#3744) removed unused/outdated stuff from Distribution module
 
 *tests
 
 NEW: Add ChangeESFlag.py script to modify useES flag in dirac.cfg. To be integrated with Jenkins code.
+CHANGE: (#3760) Use the above Client classes instead of invoking RPCClient()
+NEW: (#3744) Added performance tests for ES and MySQL for WMS DB backends
+NEW: (#3744) Added miniInstallDIRAC function for Jenkins jobs
+
+*Docs
+FIX: Better dirac.cfg example configuration for web
+NEW: (#3744) Add WMS documentation in DeveloperGuide/Systems
+
+[v6r20p7]
+
+*Core
+FIX: (#3768) The Glue2 parsing handles some common issues more gracefully:
+     handle cases where the execution environment just does not exist, use sensible;
+     dummy values in this case (many sites);
+     handle multiple execution environments at a single computing share (i.e., CERN);
+     handle multiple execution environments with the same ID (e.g., SARA)
+     
+CHANGE: (#3768) some print outs are prefixed with "SCHEMA PROBLEM", which seem to point to problems in the published information, i.e. keys pointing to non-existent entries, or non-unique IDs
+
+*Tests
+NEW: (#3769) allow to install DIRACOS if DIRACOSVER env variable is specified
+
+*ResourceStatusSystem
+CHANGE: (#3767) Added a post-processing function in InfoGetter, for handling special case of FreeDisk policies
+
+*WorkloadManagementSystem
+FIX: (#3767) corrected inconsistent option name for pilotFileServer CS option
+
+*TransformationSystem
+CHANGE: (#3766) TransformationCleaningAgent can now run without a shifterProxy, it uses 
+        the author of the transformation for the cleanup actions instead.
+CHANGE: (#3766) TransformationCleaningAgent: the default value for shifterProxy was removed
+FIX: (#3766) TaskManagerAgent: RequestTasks/WorkflowTasks: value for useCertficates to `False` 
+     instead of `None`. Fixes the broken submission when using a shifterProxy for the TaskManagerAgents
+
+[v6r20p6]
+
+*Tests
+CHANGE: (#3757) generate self signed certificate TLS compliant
+
+*Interfaces
+FIX: (#3754) classmethods should not have self! (Dirac.py)
+
+*WorkloadManagementSystem
+FIX: (#3755) JobManager - bug fix in __deleteJob resulting in exceptions
+
+*DataManagementSystem
+NEW: (#3736) FTS3 add kicking of stuck jobs
+FIX: (#3736) FTS3 update files in sequence to avoid mysql deadlock
+CHANGE: (#3736) Canceled is not a final state for FTS3 Files
+CHANGE: (#3736) FTS3Operations are finalized if the Request is in a final state (instead of Scheduled)
+FIX: (#3724) change the ps_delete_files and ps_delete_replicas_from_file_ids to not lock on MySQL 5.7
+
+*TransformationSystem
+CHANGE: (#3758) re-written a large test as pytest (much less verbosity, plan to extend it)
+FIX: (#3758) added BulkSubmission option in documentation for WorkflowTaskAgent
+
+*RequestManagementSystem
+FIX: (#3759) dirac-rms-request: silence a warning, when not using the old FTS Services
+
+*ResourceStatusSystem
+FIX: (#3753) - style changes
+
+[v6r20p5]
+
+*Docs
+
+FIX: (#3747) fix many warnings
+FIX: (#3735) GetReleaseNotes.py no longer depends on curl, but the python requests packe
+FIX: (#3740) Fix fake environments for sqlalchemy.ext import, some code documentation pages were not build, e.g. FTS3Agent
+NEW: (#3762) Add --repo option, e.g. --repo DiracGrid/DiracOS, or just --repo DiracOS, fixes DIRACGrid/DIRACOS#30
+
+*TransformationSystem
+
+FIX: (#3726) If the result can not be evaluated, it can be converted to list
+FIX: (#3723) TaskManagerAgentBase - add option ShifterCredentials to set the credentials to 
+     use for all submissions, this is single VO only
+FIX: (#3723) WorkflowTasks/RequestTasks: pass ownerDN and ownerGroup parameter to all the submission 
+     clients if using shifterProxy ownerDN and ownerGroup are None thus reproducing the original behaviour
+FIX: (#3723) TaskManagerAgentBase - refactor adding operations for transformation to separate function to 
+     ensure presence of Owner/DN/Group in dict entries RequestTaskAgent no longer sets shifterProxy by default.
+
+*Resources
+
+CHANGE: (#3745) Add the deprecated decorator to native XROOT plugin
 
 [v6r20p4]
 
@@ -193,6 +290,23 @@ FIX: Update of the FTS3 docs
 *Tests
 FIX: add MonitoringDB to the configuration
 FIX: Installing elasticSeach locally in Jenkins, with ComponentInstaller support.
+
+[v6r19p25]
+
+*TransformationSystem
+FIX: (#3742) TransformationDB - when adding files to transformations with a multi-threaded agent, 
+     it might happen that 2 threads are adding the same file at the same time. The LFN was not 
+     unique in the DataFiles table, which was a mistake... This fix assumes the LFN is unique, 
+     i.e. if not the table had been cleaned and the table updated to be unique.
+
+[v6r19p24]
+
+*WMS
+FIX: (#3739) pilotTools - added --tag and --requiredTag options
+FIX: (#3739) pilotCommands - make NumberOfProcessors = 1 if nowhere defined (default)
+
+*Resources
+FIX: (#3739) CREAMComputingElement - possibility to defined CEQueueName to be used in the pilot submission command
 
 [v6r19p23]
 

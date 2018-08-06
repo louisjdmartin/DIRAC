@@ -1,4 +1,4 @@
-""" TaskManager contains WorkflowsTasks and RequestTasks modules, for managing jobs and requests tasks
+""" TaskManager contains WorkflowTasks and RequestTasks modules, for managing jobs and requests tasks
 """
 
 __RCSID__ = "$Id$"
@@ -108,7 +108,8 @@ class RequestTasks(TaskBase):
   """
 
   def __init__(self, transClient=None, logger=None, requestClient=None,
-               requestClass=None, requestValidator=None):
+               requestClass=None, requestValidator=None,
+               ownerDN=None, ownerGroup=None):
     """ c'tor
 
         the requestClass is by default Request.
@@ -120,9 +121,12 @@ class RequestTasks(TaskBase):
       logger = gLogger.getSubLogger('RequestTasks')
 
     super(RequestTasks, self).__init__(transClient, logger)
+    useCertificates = True if (bool(ownerDN) and bool(ownerGroup)) else False
 
     if not requestClient:
-      self.requestClient = ReqClient()
+      self.requestClient = ReqClient(useCertificates=useCertificates,
+                                     delegatedDN=ownerDN,
+                                     delegatedGroup=ownerGroup)
     else:
       self.requestClient = requestClient
 
@@ -326,8 +330,7 @@ class RequestTasks(TaskBase):
     """
     if isinstance(oRequest, self.requestClass):
       return self.requestClient.putRequest(oRequest, useFailoverProxy=False, retryMainService=2)
-    else:
-      return S_ERROR("Request should be a Request object")
+    return S_ERROR("Request should be a Request object")
 
   def updateTransformationReservedTasks(self, taskDicts):
     requestNameIDs = {}
@@ -417,7 +420,8 @@ class WorkflowTasks(TaskBase):
   """
 
   def __init__(self, transClient=None, logger=None, submissionClient=None, jobMonitoringClient=None,
-               outputDataModule=None, jobClass=None, opsH=None, destinationPlugin=None):
+               outputDataModule=None, jobClass=None, opsH=None, destinationPlugin=None,
+               ownerDN=None, ownerGroup=None):
     """ Generates some default objects.
         jobClass is by default "DIRAC.Interfaces.API.Job.Job". An extension of it also works:
         VOs can pass in their job class extension, if present
@@ -428,8 +432,11 @@ class WorkflowTasks(TaskBase):
 
     super(WorkflowTasks, self).__init__(transClient, logger)
 
+    useCertificates = True if (bool(ownerDN) and bool(ownerGroup)) else False
     if not submissionClient:
-      self.submissionClient = WMSClient()
+      self.submissionClient = WMSClient(useCertificates=useCertificates,
+                                        delegatedDN=ownerDN,
+                                        delegatedGroup=ownerGroup)
     else:
       self.submissionClient = submissionClient
 
@@ -592,7 +599,6 @@ class WorkflowTasks(TaskBase):
                                "%%(%s)s" % name,
                                name)
 
-
       for pName, seq in seqDict.iteritems():
         paramSeqDict.setdefault(pName, []).append(seq)
 
@@ -644,7 +650,6 @@ class WorkflowTasks(TaskBase):
                                      'string',
                                      '00000000',
                                      "Initial JOB_ID")
-
 
       paramsDict['Site'] = site
       paramsDict['JobType'] = jobType
