@@ -17,7 +17,7 @@ from DIRAC.ConfigurationSystem.Client.PathFinder import getServiceURL
 from DIRAC import gLogger
 
 
-def isCompleteURL(url):
+def isURL(url):
   """
     Just a test to check if URL is already given or not
   """
@@ -35,7 +35,7 @@ def RPCClientSelector(*args, **kwargs):  # We use same interface as RPCClient
   try:
     serviceName = args[0]
     gLogger.verbose("Trying to autodetect client for %s" % serviceName)
-    if not isCompleteURL(serviceName):
+    if not isURL(serviceName):
       completeUrl = getServiceURL(serviceName)
       gLogger.verbose("URL resolved: %s" % completeUrl)
     else:
@@ -46,7 +46,7 @@ def RPCClientSelector(*args, **kwargs):  # We use same interface as RPCClient
     else:
       rpc = RPCClient(*args, **kwargs)
   except Exception:
-    # If anything wen't wrong in the resolution, we return default RPCClient
+    # If anything went wrong in the resolution, we return default RPCClient
     # So the comportement is exactly the same as before implementation of Tornado
     rpc = RPCClient(*args, **kwargs)
   return rpc

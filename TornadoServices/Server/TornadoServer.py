@@ -9,17 +9,12 @@ __RCSID__ = "$Id$"
 import time
 import datetime
 import os
+
 from socket import error as socketerror
+
 import M2Crypto
 
-# Patching -- Should disable pylint wrong-import-position...
-#from tornado_m2crypto.m2netutil import m2_wrap_socket  # pylint: disable=wrong-import-position
-#import tornado.netutil  # pylint: disable=wrong-import-position
-#tornado.netutil.ssl_wrap_socket = m2_wrap_socket  # pylint: disable=wrong-import-position
-#
-#import tornado.httputil  # pylint: disable=wrong-import-position
-#tornado.httputil.HTTPServerRequest.configure('tornado_m2crypto.m2httputil.M2HTTPServerRequest')  # pylint: disable=wrong-import-position
-import tornado.iostream  # pylint: disable=wrong-import-position
+import tornado.iostream
 tornado.iostream.SSLIOStream.configure('tornado_m2crypto.m2iostream.M2IOStream')  # pylint: disable=wrong-import-position
 
 from tornado.httpserver import HTTPServer
@@ -71,18 +66,10 @@ class TornadoServer(object):
     :param str debug: Activate debug mode of Tornado (autoreload server + more errors display) and M2Crypto
     :param int port: Used to change port, default is 443
     """
-    # If Tornado is used gRefresher must be disabled to avoid conflicts with IOLoop
-    # Then we must use Tornado version of the refresher
-    # from DIRAC.ConfigurationSystem.private.RefresherIOLoop import RefresherIOLoop
-    # gRefresher.useAlternativeBackgroundRefresher(RefresherIOLoop)
-
 
     # If port not precised, get it from config
     if port is None:
-      port = gConfig.getValue("/Systems/Tornado/%s/Port" % PathFinder.getSystemInstance('Tornado'))
-
-      if port is None:  # If we still have nothing, use 443 (default for HTTPS)
-        port = 443
+      port = gConfig.getValue("/Systems/Tornado/%s/Port" % PathFinder.getSystemInstance('Tornado'), 443)
 
     if services and not isinstance(services, list):
       services = [services]
@@ -95,8 +82,8 @@ class TornadoServer(object):
     self._monitor = MonitoringClient()
     self.__monitoringLoopDelay = 60  # In secs
 
-    # If services are defined, load only these ones (useful for debug purpose)
-    if services and services != []:
+    # If services are defined, load only these ones (useful for debug purpose or specific services)
+    if services:
       self.handlerManager.loadHandlersByServiceName(services)
 
     # if no service list is given, load services from configuration
@@ -123,7 +110,7 @@ class TornadoServer(object):
     router = Application(self.urls, debug=self.debug)
 
     certs = Locations.getHostCertificateAndKeyLocation()
-    ca = Locations.getCAsLocation()    
+    ca = Locations.getCAsLocation()
     ssl_options = {
         'certfile': certs[0],
         'keyfile': certs[1],
@@ -135,6 +122,7 @@ class TornadoServer(object):
     self.__monitorLastStatsUpdate = time.time()
     self.__report = self.__startReportToMonitoringLoop()
 
+    # Starting monitoring, IOLoop waiting time in ms, __monitoringLoopDelay is defined in seconds
     tornado.ioloop.PeriodicCallback(self.__reportToMonitoring, self.__monitoringLoopDelay * 1000).start()
 
 

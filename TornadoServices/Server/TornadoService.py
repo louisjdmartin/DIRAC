@@ -9,7 +9,8 @@
 
       @classmethod
       def initializeHandler(cls, infosDict):
-        ## Called 1 time, at first request
+        ## Called 1 time, at first request.
+        ## You don't need to use super or to call any parents method, it's managed by the server
 
       def initializeRequest(self):
         ## Called at each request

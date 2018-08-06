@@ -64,7 +64,8 @@ class MonitoringFlusherTornado(object):
   def __init__(self):
     self.__mcList = []
     gLogger.info("Using MonitoringClient in IOLoop mode")
-    # Here we don't need to use IOLoop.current(), tornado will attach periodic callback to the current IOLoop himself 
+    # Here we don't need to use IOLoop.current(), tornado will attach periodic callback to the current IOLoop himself
+    # We set callback every 5 minnutes
     tornado.ioloop.PeriodicCallback(self.flush, 300000).start()
 
   def flush(self, allData=False):

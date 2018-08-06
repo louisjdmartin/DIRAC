@@ -3,18 +3,20 @@
 
   It contains background activities for refresher, it works with IOLoop from Tornado.
 
-  Each method have his docstring but you may refer to Tornado documentation about
+  Each method have its docstring but you may refer to Tornado documentation about
   IOLoop who can be found here:
 
   - http://www.tornadoweb.org/en/stable/ioloop.html
   - http://www.tornadoweb.org/en/stable/guide/coroutines.html
 
-  To run Refresher with this version you must define the USE_TORNADO_REFRESHER
+  To run Refresher with this version you must define the USE_TORNADO_IOLOOP
   environement variable
 
  .. warning::
 
     You can't use this class without an IOLoop who is running.
+    This class can be defined before starting IOLoop, background tasks
+    will be delayed until the IOLoop start.
 """
 
 import time
@@ -35,9 +37,8 @@ class RefresherIOLoop(object):
 
   def refreshConfigurationIfNeeded(self):
     """
-      We kept it for interface but... we don't need to refresh
-      because if we use this version it also mean that we using
-      tornado who trigger the automatic refresh
+      Trigger an automatic refresh, most of the time nothing happens because automaticUpdate is enabled.
+      This function is called by gConfig.getValue most of the time.
 
       We disable pylint error because this class must be instanciated by a mixin to define the missing methods
     """
@@ -47,7 +48,6 @@ class RefresherIOLoop(object):
       return
     self._lastUpdateTime = time.time()
     IOLoop.current().run_in_executor(None, self._refresh) #pylint: disable=no-member
-    #self._refresh() #pylint: disable=no-member
     return
 
   def autoRefreshAndPublish(self, sURL):

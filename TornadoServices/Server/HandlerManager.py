@@ -104,11 +104,11 @@ class HandlerManager(object):
           for service in services['Value']:
             newservice = ("%s/%s" % (system, service))
 
-            # print '\n\n/Systems/%s/%s/Services/%s/Tornado' % (system, instance, service)
+            # We search in the CS all handlers who used HTTPS as protocol
             isHTTPS = gConfig.getValue('/Systems/%s/%s/Services/%s/Protocol' % (system, instance, service))
             if isHTTPS and isHTTPS.lower() == 'https':
               serviceList.append(newservice)
-    # print serviceList
+
     self.loadHandlersByServiceName(serviceList)
 
   def loadHandlersByServiceName(self, servicesNames):
@@ -130,6 +130,8 @@ class HandlerManager(object):
     for module in self.loader.getModules().values():
       url = module['loadName']
 
+      # URL can be like https://domain:port/service/name or just service/name
+      # Here we just want the service name, for tornado
       serviceTuple = url.replace('https://', '').split('/')[-2:]
       url = "%s/%s" % (serviceTuple[0], serviceTuple[1])
       self.__addHandler((module['loadName'], module['classObj']), url)
@@ -140,6 +142,9 @@ class HandlerManager(object):
     """
       Get all handler for usage in Tornado, as a list of tornado.web.url
       If there is no handler found before, it try to find them
+
+      :returns: a list of URL (not the string with "https://..." but the tornado object)
+                see http://www.tornadoweb.org/en/stable/web.html#tornado.web.URLSpec
     """
     if not self.__handlers and self.__autoDiscovery:
       self.__autoDiscovery = False
@@ -152,8 +157,9 @@ class HandlerManager(object):
   def getHandlersDict(self):
     """
       Return all handler dictionnary
-      - Keys: URL at str format, e.g.: "/Framework/Service"
-      - Values: tornado.web.url, ready to use in tornado
+
+      :returns: dictionnary with absolute url as key ("/System/Service") 
+                and tornado.web.url object as value
     """
     if not self.__handlers and self.__autoDiscovery:
       self.__autoDiscovery = False
