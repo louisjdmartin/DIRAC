@@ -77,6 +77,7 @@ class MonitoringFlusherTornado(object):
     if mc not in self.__mcList:
       self.__mcList.append(mc)
 
+# USE_TORNADO_IOLOOP is defined by starting scripts
 if os.environ.get('USE_TORNADO_IOLOOP', 'false').lower() == 'true':
   gMonitoringFlusher = MonitoringFlusherTornado()
 else:

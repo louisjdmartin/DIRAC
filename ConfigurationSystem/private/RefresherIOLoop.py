@@ -9,8 +9,6 @@
   - http://www.tornadoweb.org/en/stable/ioloop.html
   - http://www.tornadoweb.org/en/stable/guide/coroutines.html
 
-  To run Refresher with this version you must define the USE_TORNADO_IOLOOP
-  environement variable
 
  .. warning::
 

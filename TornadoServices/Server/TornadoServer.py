@@ -58,7 +58,7 @@ class TornadoServer(object):
                  for extra logging use -ddd in your command line
   """
 
-  def __init__(self, services=None, debug=False, port=None):
+  def __init__(self, services=None, debugSSL=False, port=None):
     """
     Basic instanciation, set some variables
 
@@ -73,10 +73,11 @@ class TornadoServer(object):
 
     if services and not isinstance(services, list):
       services = [services]
+
     # URLs for services: 1URL/Service
     self.urls = []
     # Other infos
-    self.debug = debug  # Used by tornado and M2Crypto
+    self.debugSSL = debugSSL  # Used by tornado and M2Crypto
     self.port = port
     self.handlerManager = HandlerManager()
     self._monitor = MonitoringClient()
@@ -84,13 +85,16 @@ class TornadoServer(object):
 
     # If services are defined, load only these ones (useful for debug purpose or specific services)
     if services:
-      self.handlerManager.loadHandlersByServiceName(services)
+      retVal = self.handlerManager.loadHandlersByServiceName(services)
+      if not retVal['OK']:
+        gLogger.error(retVal['Message'])
+        raise ImportError("Some services can't be loaded, check the service names and configuration.")
 
     # if no service list is given, load services from configuration
     handlerDict = self.handlerManager.getHandlersDict()
-    for key in handlerDict:
+    for item in handlerDict.iteritems():
       # handlerDict[key].initializeService(key)
-      self.urls.append(url(key, handlerDict[key], dict(debug=debug)))
+      self.urls.append(url(item[0], item[1], dict(debug=self.debugSSL)))
     self.__report = None
     self.__monitorLastStatsUpdate = None
 
@@ -104,10 +108,10 @@ class TornadoServer(object):
     gLogger.debug("Starting Tornado")
     self._initMonitoring()
 
-    if self.debug:
+    if self.debugSSL:
       gLogger.warn("Server is running in debug mode")
 
-    router = Application(self.urls, debug=self.debug)
+    router = Application(self.urls, debug=self.debugSSL)
 
     certs = Locations.getHostCertificateAndKeyLocation()
     ca = Locations.getCAsLocation()
@@ -116,7 +120,7 @@ class TornadoServer(object):
         'keyfile': certs[1],
         'cert_reqs': M2Crypto.SSL.verify_peer,
         'ca_certs': ca,
-        'sslDebug': self.debug
+        'sslDebug': self.debugSSL
     }
 
     self.__monitorLastStatsUpdate = time.time()

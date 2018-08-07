@@ -50,6 +50,8 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
     TornadoService main class, manage all tornado services
     Instanciated at each request
   """
+
+  # Because we initialize at first request, we use a flag to know if it's already done
   __FLAG_INIT_DONE = False
 
   # MonitoringClient, we don't use gMonitor which is not thread-safe
@@ -138,14 +140,16 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
 
   def initializeRequest(self):
     """
-      Called at every request, may be overwrited
+      Called at every request, may be overwrited in your handler.
     """
     pass
 
+  # This function is designed to be overwrited as we want in Tornado
+  # It's why we should disable pylint for this one
   def initialize(self, debug):  # pylint: disable=arguments-differ
     """
       initialize, called at every request
-      WARNING: DO NOT REWRITE THIS FUNCTION IN YOUR HANDLER
+      ..warning:: DO NOT REWRITE THIS FUNCTION IN YOUR HANDLER
           ==> initialize in DISET became initializeRequest in HTTPS !
     """
     self.debug = debug
@@ -155,19 +159,21 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
     self.credDict = None
     self.authorized = False
     self.method = None
+
+    # On internet you can find "HTTP Error Code" or "HTTP Status Code" for that.
+    # In fact code>=400 is an error (like "404 Not Found"), code<400 is a status (like "200 OK")
     self._httpError = HTTPErrorCodes.HTTP_OK
     if not self.__FLAG_INIT_DONE:
       init = self.__initializeService(self.srv_getURL(), self.request.full_url(), debug)
       if not init['OK']:
-        gLogger.debug("Error during initalization")
+        self._httpError = HTTPErrorCodes.HTTP_INTERNAL_SERVER_ERROR
+        gLogger.error("Error during initalization on %s" % self.request.full_url())
         gLogger.debug(init)
         return False
 
     self._stats['requests'] += 1
-    # self._monitor.setComponentName(self.srv_getURL())
     self._monitor.setComponentExtraParam('queries', self._stats['requests'])
     self._monitor.addMark("Queries")
-    # By default we say there is no error ("200 OK"), changed if an error occured
     return True
 
   def prepare(self):
@@ -180,7 +186,7 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
     # Init of service must be checked here, because if it have crashed we are
     # not able to end request at initialization (can't write on client)
     if not self.__FLAG_INIT_DONE:
-      error = encode("Service can't be initialized !")
+      error = encode("Service can't be initialized ! Check logs on the server for more informations.")
       self.__write_return(error)
       self.finish()
 
@@ -256,11 +262,10 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
     """
 
     # In case of error in server side we hide server CallStack to client
-    # If Tornado is set to debug mode CallStack is sended when error occured
-    if not self.debug and 'CallStack' in dictionnary:
+    if 'CallStack' in dictionnary:
       del dictionnary['CallStack']
 
-    # Write error code before writing, by default error code is "200 OK"
+    # Write status code before writing, by default error code is "200 OK"
     self.set_status(self._httpError)
     self.write(encode(dictionnary))
 
@@ -292,15 +297,24 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
 
   def gatherPeerCredentials(self):
     """
-      Load client certchain in DIRAC and extract informations
+      Load client certchain in DIRAC and extract informations.
+
+      The dictionnary returned is designed to work with the AuthManager, 
+      already written for DISET and re-used for HTTPS.
     """
 
+
+    # This line get certificates, it must be change when M2Crypto will be fully integrated in tornado
     chainAsText = self.request.connection.stream.socket.get_peer_cert().as_pem()
     peerChain = X509Chain()
 
+    # Here we read all certificate chain
     cert_chain = self.request.get_ssl_certificate_chain()
     for cert in cert_chain:
       chainAsText += cert.as_pem()
+
+    # And we let some utilities do the job...
+    # Following lines just get the right info, at the right place
     peerChain.loadChainFromString(chainAsText)
 
     isProxyChain = peerChain.isProxy()['Value']
@@ -320,6 +334,8 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
     diracGroup = peerChain.getDIRACGroup()
     if diracGroup['OK'] and diracGroup['Value']:
       credDict['group'] = diracGroup['Value']
+
+    # We check if client sends extra credentials...
     if "extraCredentials" in self.request.arguments:
       extraCred = self.get_argument("extraCredentials")
       if extraCred:
@@ -337,7 +353,9 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
 
   def export_ping(self):
     """
-      Default ping method, returns some info about server
+      Default ping method, returns some info about server.
+
+      It returns the exact same information as DISET, for transparency purpose.
     """
     # COPY FROM DIRAC.Core.DISET.RequestHandler
     dInfo = {}
@@ -385,7 +403,7 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
 
   def export_whoami(self):
     """
-      A simple whoami
+      A simple whoami, returns all credential dictionnary, except certificate chain object.
     """
     credDict = self.srv_getRemoteCredentials()
     if 'x509Chain' in credDict:
@@ -396,9 +414,11 @@ class TornadoService(RequestHandler):  # pylint: disable=abstract-method
 
 ####
 #
-#  Utilities methods
-#  From DIRAC.Core.DISET.requestHandler to get same interface in the handlers
-#  Adapted for Tornado
+#  Utilities methods, some getters.
+#  From DIRAC.Core.DISET.requestHandler to get same interface in the handlers.
+#  Adapted for Tornado.
+#  These method are copied from DISET RequestHandler, they are not all used when i'm writing
+#  these lines. I rewrite them for Tornado to get them ready when a new HTTPS service need them
 #
 ####
 

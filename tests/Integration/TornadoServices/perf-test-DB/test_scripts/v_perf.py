@@ -1,11 +1,14 @@
-#from DIRAC.TornadoServices.Client.TornadoClient import TornadoClient
-#from DIRAC.Core.DISET.RPCClient import RPCClient
+"""
+ This test is designed to check protocol/server performances with a database
+
+ Configuration and how to run it are explained in the documentation
+"""
+
 from DIRAC.TornadoServices.Client.RPCClientSelector import RPCClientSelector
 from time import time
 from random import random
 import sys
 import os
-#from DIRAC import S_OK
 
 class Transaction(object):
   def __init__(self):
@@ -17,7 +20,7 @@ class Transaction(object):
     s = str(int(random()*100))
     s2= str(int(random()*100))
     service = self.client
-    #print service
+
     # Create a user
     newUser = service.addUser(s)
     userID = int(newUser['Value'])
@@ -31,5 +34,3 @@ class Transaction(object):
     service.editUser(userID, s2)
     User = service.getUserName(userID)
     assert (User['Value'] == s2), 'Error on update'
-
-    #assert (self.client.addUser()['OK'] == True), 'error'

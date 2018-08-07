@@ -1,21 +1,23 @@
-#from DIRAC.TornadoServices.Client.TornadoClient import TornadoClient
-#from DIRAC.Core.DISET.RPCClient import RPCClient
+"""
+ This test is designed to check protocol/server performances
+
+ Configuration and how to run it are explained in the documentation
+"""
+
 from DIRAC.TornadoServices.Client.RPCClientSelector import RPCClientSelector
 from time import time
 from random import randint
 import sys
 import os
-#from DIRAC import S_OK
+
 
 class Transaction(object):
   def __init__(self):
-    # If we want we can force to use dirac
-    #if len(sys.argv) > 2 and sys.argv[2].lower() == 'dirac':
-    #  self.client = RPCClient('Framework/User')
-    #else:
-    #  self.client = TornadoClient('Framework/User')
-    self.client = RPCClientSelector('Framework/User', timeout=30)
-    #print os.environ['PYTHONOPTIMIZE']
+    # If we want we can force to use another service name (testing multiple services for example)
+    if len(sys.argv) > 2:
+      self.client = RPCClientSelector(sys.argv[2])
+    else:
+      self.client = RPCClientSelector('Framework/User')
     return
 
   def run(self):

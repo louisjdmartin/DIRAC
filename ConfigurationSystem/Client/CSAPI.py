@@ -5,7 +5,8 @@
 
 from DIRAC import gLogger, gConfig, S_OK, S_ERROR
 #from DIRAC.Core.DISET.RPCClient import RPCClient
-#LOUIS
+#For now, if we want it to work with HTTPS we must use the Configuration client
+#For later, it you may replace RPCClient by Client
 from DIRAC.TornadoServices.Client.SpecificClient.ConfigurationClient import ConfigurationClient as RPCClient
 from DIRAC.Core.Utilities import List, Time
 from DIRAC.Core.Security.X509Chain import X509Chain

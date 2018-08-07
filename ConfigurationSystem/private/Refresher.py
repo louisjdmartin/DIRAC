@@ -42,14 +42,15 @@ class TornadoRefresher(RefresherBase, RefresherIOLoop):
 
 
 
-"""
-  Here we define the refresher who should be used.
-  By default we use the original refresher.
 
-  Be careful, if you never start the IOLoop (with a TornadoServer for example)
-  the TornadoRefresher will not work. IOLoop can be started after refresher
-  but background tasks will be delayed until IOLoop start.
-"""
+# Here we define the refresher who should be used.
+# By default we use the original refresher.
+
+# Be careful, if you never start the IOLoop (with a TornadoServer for example)
+# the TornadoRefresher will not work. IOLoop can be started after refresher
+# but background tasks will be delayed until IOLoop start.
+
+# USE_TORNADO_IOLOOP is defined by starting scripts
 if os.environ.get('USE_TORNADO_IOLOOP', 'false').lower() == 'true':
   gRefresher = TornadoRefresher()
 else:
