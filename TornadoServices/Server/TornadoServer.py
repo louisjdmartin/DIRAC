@@ -50,7 +50,7 @@ class TornadoServer(object):
     Example 2:We want to debug service1 and service2 only, and use another port for that ::
 
       services = ['component/service1', 'component/service2']
-      serverToLaunch = TornadoServer(services=services, port=1234, debug=True)
+      serverToLaunch = TornadoServer(services=services, port=1234, debugSSL=True)
       serverToLaunch.startTornado()
 
 
@@ -102,7 +102,7 @@ class TornadoServer(object):
     """
       Start the tornado server when ready.
       The script is blocked in the Tornado IOLoop.
-      Multiprocess option is available
+      Multiprocess option is available but may be used with caution
     """
 
     gLogger.debug("Starting Tornado")
