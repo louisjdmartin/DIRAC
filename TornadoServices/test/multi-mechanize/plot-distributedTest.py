@@ -26,7 +26,7 @@ plt.suptitle('%s with %d threads\n %d threads/client - %d clients (total %d thre
 
 def get_results():
   if len(sys.argv) < 3:
-    print "Usage: python plot-distributedTest TIME NUMBEROFFILE"
+    print "Usage: python plot-distributedTest NAME NUMBEROFFILE"
     print "Example: python plot-distributedTest 1532506328.38 2"
     sys.exit(1)
 
