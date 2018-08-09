@@ -104,15 +104,15 @@ class RefresherBase():
     """
     self._lastUpdateTime = time.time()
     gLogger.info("Refreshing from master server")
-    # LOUIS
     #from DIRAC.Core.DISET.RPCClient import RPCClient
-    #from DIRAC.TornadoServices.Client.RPCClientSelector import RPCClientSelector as RPCClient
-    from DIRAC.TornadoServices.Client.SpecificClient.ConfigurationClient import ConfigurationClient as RPCClient
+    from DIRAC.TornadoServices.Client.RPCClientSelector import RPCClientSelector as RPCClient
+    from DIRAC.TornadoServices.Client.SpecificClient.ConfigurationRPCClient import ConfigurationRPCClient
     sMasterServer = gConfigurationData.getMasterServer()
     if sMasterServer:
       oClient = RPCClient(sMasterServer, timeout=self._timeout,
                           useCertificates=gConfigurationData.useServerCertificate(),
-                          skipCACheck=gConfigurationData.skipCACheck())
+                          skipCACheck=gConfigurationData.skipCACheck(),
+                          httpsClient=ConfigurationRPCClient)
       dRetVal = _updateFromRemoteLocation(oClient)
       if not dRetVal['OK']:
         gLogger.error("Can't update from master server", dRetVal['Message'])
@@ -154,13 +154,13 @@ class RefresherBase():
     gLogger.debug("Randomized server list is %s" % ", ".join(randomServerList))
 
     for sServer in randomServerList:
-      # LOUIS
       #from DIRAC.Core.DISET.RPCClient import RPCClient
-      #from DIRAC.TornadoServices.Client.RPCClientSelector import RPCClientSelector as RPCClient
-      from DIRAC.TornadoServices.Client.SpecificClient.ConfigurationClient import ConfigurationClient as RPCClient
+      from DIRAC.TornadoServices.Client.RPCClientSelector import RPCClientSelector as RPCClient
+      from DIRAC.TornadoServices.Client.SpecificClient.ConfigurationRPCClient import ConfigurationRPCClient
       oClient = RPCClient(sServer,
                           useCertificates=gConfigurationData.useServerCertificate(),
-                          skipCACheck=gConfigurationData.skipCACheck())
+                          skipCACheck=gConfigurationData.skipCACheck(),
+                          httpsClient=ConfigurationRPCClient)
       dRetVal = _updateFromRemoteLocation(oClient)
       if dRetVal['OK']:
         return dRetVal
