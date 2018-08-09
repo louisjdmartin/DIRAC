@@ -4,7 +4,7 @@
 # Author : Louis MARTIN
 ########################################################################
 # Just run this script to start Tornado and all services
-# You can add the port if needed, if not define get it from dirac.cfg or use default value (443)
+# Use CS to change port
 
 __RCSID__ = "$Id$"
 
@@ -44,15 +44,6 @@ includeExtensionErrors()
 
 
 gLogger.initialize('Tornado', "/")
-
-port = None
-if len(sys.argv)>1:
-  try:
-    port = int(sys.argv[1])
-  except ValueError:
-    pass
-
-
 
 
 serverToLaunch = TornadoServer(port=port)

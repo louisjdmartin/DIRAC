@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 ########################################################################
-# File :   tornado-start-all
+# File :   tornado-start-CS
 # Author : Louis MARTIN
 ########################################################################
-# Just run this script to start Tornado and all services
-# You can add the port if needed, if not define get it from dirac.cfg or use default value (443)
+# Just run this script to start Tornado and CS service
+# Use dirac.cfg (or other cfg given in the command line) to change port
 
 __RCSID__ = "$Id$"
 
@@ -46,15 +46,6 @@ includeExtensionErrors()
 
 gLogger.initialize('Tornado', "/")
 
-port = None
-if len(sys.argv)>1:
-  try:
-    port = int(sys.argv[1])
-  except ValueError:
-    pass
 
-
-
-
-serverToLaunch = TornadoServer(port=port, services='Configuration/Server')
+serverToLaunch = TornadoServer(services='Configuration/Server')
 serverToLaunch.startTornado()
