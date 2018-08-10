@@ -4,7 +4,7 @@
 """
 
 from DIRAC import gLogger, gConfig, S_OK, S_ERROR
-from DIRAC.TornadoServices.Client.SpecificClient.ConfigurationServerClient import ConfigurationServerClient
+from DIRAC.ConfigurationSystem.Client.ConfigurationServerClient import ConfigurationServerClient
 from DIRAC.Core.Utilities import List, Time
 from DIRAC.Core.Security.X509Chain import X509Chain
 from DIRAC.Core.Security import Locations

@@ -31,7 +31,6 @@ class Client(object):
     self.serverURL = serverURL
     self.call = None  # I suppose it is initialized here to make pylint happy
     self.__kwargs = kwargs
-    #self.__kwargs['httpsClient'] = TornadoClient
 
   def __getattr__(self, name):
     """ Store the attribute asked and call executeRPC.

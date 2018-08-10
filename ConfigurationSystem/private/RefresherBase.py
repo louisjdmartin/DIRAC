@@ -106,7 +106,7 @@ class RefresherBase():
     gLogger.info("Refreshing from master server")
     sMasterServer = gConfigurationData.getMasterServer()
     if sMasterServer:
-      from DIRAC.TornadoServices.Client.SpecificClient.ConfigurationServerClient import ConfigurationServerClient
+      from DIRAC.ConfigurationSystem.Client.ConfigurationServerClient import ConfigurationServerClient
       oClient = ConfigurationServerClient(sMasterServer, timeout=self._timeout,
                           useCertificates=gConfigurationData.useServerCertificate(),
                           skipCACheck=gConfigurationData.skipCACheck())
@@ -151,7 +151,7 @@ class RefresherBase():
     gLogger.debug("Randomized server list is %s" % ", ".join(randomServerList))
 
     for sServer in randomServerList:
-      from DIRAC.TornadoServices.Client.SpecificClient.ConfigurationServerClient import ConfigurationServerClient
+      from DIRAC.ConfigurationSystem.Client.ConfigurationServerClient import ConfigurationServerClient
       oClient = ConfigurationServerClient(sServer,
                           useCertificates=gConfigurationData.useServerCertificate(),
                           skipCACheck=gConfigurationData.skipCACheck())

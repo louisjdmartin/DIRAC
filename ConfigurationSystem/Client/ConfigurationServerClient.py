@@ -16,7 +16,10 @@ from DIRAC.Core.Base.Client import Client
 class ConfigurationServerJSON(TornadoClient):
   """
     The specific client for configuration system.
-    To avoid JSON limitation it adds base 64 encoding
+    To avoid JSON limitation the HTTPS handler encode data in base64
+    before sending them, this class only decode the base64
+
+    An exception is made with CommitNewData who ENCODE in base64
   """
 
 
@@ -54,9 +57,14 @@ class ConfigurationServerJSON(TornadoClient):
 
 class ConfigurationServerClient(Client):
   """
-    Define serializationLogic for HTTPS.
+    Specific client to speak with ConfigurationServer.
 
-    Here there is nothing more, but you can define more logic to the
-    ConfigurationServerClient if needed !
+    This class must contain at least the JSON decoder dedicated to 
+    the Configuration Server.
+
+    You can implement more logic or function to the client here if needed, 
+    RPCCall can be made inside this class with executeRPC method.
   """
+
+  # The JSON decoder for Configuration Server
   httpsClient = ConfigurationServerJSON
