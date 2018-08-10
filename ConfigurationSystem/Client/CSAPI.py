@@ -4,11 +4,7 @@
 """
 
 from DIRAC import gLogger, gConfig, S_OK, S_ERROR
-#from DIRAC.Core.DISET.RPCClient import RPCClient
-#For now, if we want it to work with HTTPS we must use the Configuration client
-#For later, it you may replace RPCClient by Client
-from DIRAC.TornadoServices.Client.RPCClientSelector import RPCClientSelector as RPCClient
-from DIRAC.TornadoServices.Client.SpecificClient.ConfigurationRPCClient import ConfigurationRPCClient
+from DIRAC.TornadoServices.Client.SpecificClient.ConfigurationServerClient import ConfigurationServerClient
 from DIRAC.Core.Utilities import List, Time
 from DIRAC.Core.Security.X509Chain import X509Chain
 from DIRAC.Core.Security import Locations
@@ -87,7 +83,7 @@ class CSAPI( object ):
     if not retVal[ 'OK' ]:
       self.__initialized = S_ERROR( "Master server is not known. Is everything initialized?" )
       return self.__initialized
-    self.__rpcClient = RPCClient( gConfig.getValue( "/DIRAC/Configuration/MasterServer", "" ) , httpsClient=ConfigurationRPCClient)
+    self.__rpcClient = ConfigurationServerClient(gConfig.getValue( "/DIRAC/Configuration/MasterServer", "" ))
     self.__csMod = Modificator( self.__rpcClient, "%s - %s - %s" % ( self.__userGroup, self.__userDN, Time.dateTime().strftime( "%Y-%m-%d %H:%M:%S" ) ) )
     retVal = self.downloadCSData()
     if not retVal[ 'OK' ]:

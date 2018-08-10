@@ -9,8 +9,11 @@
 from base64 import b64encode, b64decode
 
 from DIRAC.TornadoServices.Client.TornadoClient import TornadoClient
+from DIRAC.Core.Base.Client import Client
 
-class ConfigurationRPCClient(TornadoClient):
+
+
+class ConfigurationServerJSON(TornadoClient):
   """
     The specific client for configuration system.
     To avoid JSON limitation it adds base 64 encoding
@@ -46,3 +49,14 @@ class ConfigurationRPCClient(TornadoClient):
       Transmit request to service by encoding data in base64.
     """
     return self.executeRPC('commitNewData', b64encode(sData))
+
+
+
+class ConfigurationServerClient(Client):
+  """
+    Define serializationLogic for HTTPS.
+
+    Here there is nothing more, but you can define more logic to the
+    ConfigurationServerClient if needed !
+  """
+  httpsClient = ConfigurationServerJSON
