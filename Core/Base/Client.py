@@ -17,13 +17,13 @@ class Client(object):
       - The self.serverURL member should be set by the inheriting class
   """
 
-  def __init__(self, **kwargs):
+  def __init__(self, url=None, **kwargs):
     """ C'tor.
 
         :param kwargs: just stored as an attribute and passed when creating
                       the RPCClient
     """
-    self.serverURL = None
+    self.serverURL = url
     self.call = None  # I suppose it is initialized here to make pylint happy
     self.__kwargs = kwargs
 

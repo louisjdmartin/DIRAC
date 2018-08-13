@@ -4,7 +4,7 @@
 """
 
 from DIRAC import gLogger, gConfig, S_OK, S_ERROR
-from DIRAC.Core.DISET.RPCClient import RPCClient
+from DIRAC.ConfigurationSystem.Client.ConfigurationServerClient import ConfigurationServerClient
 from DIRAC.Core.Utilities import List, Time
 from DIRAC.Core.Security.X509Chain import X509Chain
 from DIRAC.Core.Security import Locations
@@ -83,7 +83,7 @@ class CSAPI(object):
     if not retVal['OK']:
       self.__initialized = S_ERROR("Master server is not known. Is everything initialized?")
       return self.__initialized
-    self.__rpcClient = RPCClient(gConfig.getValue("/DIRAC/Configuration/MasterServer", ""))
+    self.__rpcClient = ConfigurationServerClient(gConfig.getValue("/DIRAC/Configuration/MasterServer", ""))
     self.__csMod = Modificator(self.__rpcClient, "%s - %s - %s" %
                                (self.__userGroup, self.__userDN, Time.dateTime().strftime("%Y-%m-%d %H:%M:%S")))
     retVal = self.downloadCSData()
@@ -108,10 +108,12 @@ class CSAPI(object):
       return self.__initialized
     if not group:
       return S_OK(self.__csMod.getSections("%s/Users" % self.__baseSecurity))
-    users = self.__csMod.getValue("%s/Groups/%s/Users" % (self.__baseSecurity, group))
-    if not users:
-      return S_OK([])
-    return S_OK(List.fromChar(users))
+    else:
+      users = self.__csMod.getValue("%s/Groups/%s/Users" % (self.__baseSecurity, group))
+      if not users:
+        return S_OK([])
+      else:
+        return S_OK(List.fromChar(users))
 
   def listHosts(self):
     if not self.__initialized['OK']:
@@ -119,11 +121,6 @@ class CSAPI(object):
     return S_OK(self.__csMod.getSections("%s/Hosts" % self.__baseSecurity))
 
   def describeUsers(self, users=None):
-    """ describe users by nickname
-
-        :param list users: list of users' nickanames
-        :return: a S_OK(description) of the users in input
-    """
     if users is None:
       users = []
     if not self.__initialized['OK']:
