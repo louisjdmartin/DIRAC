@@ -37,7 +37,6 @@ class RefresherBase():
     => If (and only if) Tornado is used, there is a mixin with RefresherIOLoop
   """
 
-
   def __init__(self):
     self._automaticUpdate = False
     self._lastUpdateTime = 0
@@ -48,10 +47,8 @@ class RefresherBase():
     random.seed()
     gEventDispatcher.registerEvent("CSNewVersion")
 
-
   def addListenerToNewVersionEvent(self, functor):
     gEventDispatcher.addListener("CSNewVersion", functor)
-
 
   def disable(self):
     """
@@ -64,7 +61,6 @@ class RefresherBase():
       Just returns if last refresh must be considered as expired or not
     """
     return time.time() - self._lastUpdateTime >= gConfigurationData.getRefreshTime()
-
 
   def enable(self):
     """
@@ -83,8 +79,6 @@ class RefresherBase():
     """
     return self._refreshEnabled
 
-
-
   def forceRefresh(self, fromMaster=False):
     """
       Force refresh
@@ -93,10 +87,6 @@ class RefresherBase():
     if self._refreshEnabled:
       return self._refresh(fromMaster=fromMaster)
     return S_OK()
-
-
-
-
 
   def _refreshAndPublish(self):
     """
@@ -108,8 +98,8 @@ class RefresherBase():
     if sMasterServer:
       from DIRAC.ConfigurationSystem.Client.ConfigurationServerClient import ConfigurationServerClient
       oClient = ConfigurationServerClient(sMasterServer, timeout=self._timeout,
-                          useCertificates=gConfigurationData.useServerCertificate(),
-                          skipCACheck=gConfigurationData.skipCACheck())
+                                          useCertificates=gConfigurationData.useServerCertificate(),
+                                          skipCACheck=gConfigurationData.skipCACheck())
       dRetVal = _updateFromRemoteLocation(oClient)
       if not dRetVal['OK']:
         gLogger.error("Can't update from master server", dRetVal['Message'])
@@ -153,8 +143,8 @@ class RefresherBase():
     for sServer in randomServerList:
       from DIRAC.ConfigurationSystem.Client.ConfigurationServerClient import ConfigurationServerClient
       oClient = ConfigurationServerClient(sServer,
-                          useCertificates=gConfigurationData.useServerCertificate(),
-                          skipCACheck=gConfigurationData.skipCACheck())
+                                          useCertificates=gConfigurationData.useServerCertificate(),
+                                          skipCACheck=gConfigurationData.skipCACheck())
       dRetVal = _updateFromRemoteLocation(oClient)
       if dRetVal['OK']:
         return dRetVal
@@ -164,5 +154,3 @@ class RefresherBase():
         if dRetVal['Message'].find("Insane environment") > -1:
           break
     return S_ERROR("Reason(s):\n\t%s" % "\n\t".join(List.uniqueElements(updatingErrorsList)))
-
-  

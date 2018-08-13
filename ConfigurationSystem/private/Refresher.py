@@ -11,8 +11,6 @@ from DIRAC.ConfigurationSystem.private.RefresherThread import RefresherThread
 from DIRAC.ConfigurationSystem.private.RefresherBase import RefresherBase
 
 
-
-
 class Refresher(RefresherBase, RefresherThread):
   """
     The refresher
@@ -23,15 +21,13 @@ class Refresher(RefresherBase, RefresherThread):
     tasks, it's the original version, for diset, using thread.
 
   """
+
   def __init__(self):
     RefresherThread.__init__(self)
     RefresherBase.__init__(self)
 
 
-
-
 gRefresher = Refresher()
-
 
 
 if __name__ == "__main__":

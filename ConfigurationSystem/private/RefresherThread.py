@@ -17,22 +17,19 @@ class RefresherThread(threading.Thread):
   """
     All background task defined to use threads
   """
+
   def __init__(self):
     threading.Thread.__init__(self)
     self._triggeredRefreshLock = LockRing.LockRing().getLock()
 
-
   def _refreshInThread(self):
     """
-      Refreshing configration in the background. By default it use a thread but it can be 
+      Refreshing configration in the background. By default it use a thread but it can be
       also runned in the IOLoop
     """
     retVal = self._refresh()
     if not retVal['OK']:
       gLogger.error("Error while updating the configuration", retVal['Message'])
-  
-
-
 
   def refreshConfigurationIfNeeded(self):
     """
@@ -82,7 +79,7 @@ class RefresherThread(threading.Thread):
   def daemonize(self):
     """
       Daemonize the background tasks
-    """ 
-    
+    """
+
     self.setDaemon(1)
     self.start()
