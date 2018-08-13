@@ -19,7 +19,7 @@ class ConfigurationServerJSON(TornadoClient):
     To avoid JSON limitation the HTTPS handler encode data in base64
     before sending them, this class only decode the base64
 
-    An exception is made with CommitNewData who ENCODE in base64
+    An exception is made with CommitNewData wich ENCODE in base64
   """
 
 

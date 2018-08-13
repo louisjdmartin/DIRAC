@@ -12,9 +12,7 @@ from DIRAC.ConfigurationSystem.Client.ConfigurationData import gConfigurationDat
 from DIRAC.ConfigurationSystem.private.Refresher import gRefresher
 from DIRAC.FrameworkSystem.Client.Logger import gLogger
 from DIRAC.Core.Utilities.ReturnValues import S_OK, S_ERROR
-##from DIRAC.Core.DISET.RPCClient import RPCClient
-# Louis
-from DIRAC.TornadoServices.Client.TornadoClient import TornadoClient as RPCClient
+from DIRAC.ConfigurationSystem.Client.ConfigurationServerClient import ConfigurationServerClient
 
 
 class ServiceInterfaceBase(object):
@@ -79,7 +77,7 @@ class ServiceInterfaceBase(object):
 
     gLogger.info("Pinging slave %s" % sSlaveURL)
 
-    rpcClient = RPCClient(sSlaveURL, timeout=10, useCertificates=True)
+    rpcClient = ConfigurationServerClient(sSlaveURL, timeout=10, useCertificates=True)
     retVal = rpcClient.ping()
     if not retVal['OK']:
       gLogger.info("Slave %s didn't reply" % sSlaveURL)

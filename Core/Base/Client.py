@@ -22,13 +22,13 @@ class Client(object):
   # Default https (RPC)Client
   httpsClient = TornadoClient
 
-  def __init__(self, serverURL=None, **kwargs):
+  def __init__(self, url=None, **kwargs):
     """ C'tor.
 
         :param kwargs: just stored as an attribute and passed when creating
                       the RPCClient
     """
-    self.serverURL = serverURL
+    self.serverURL = url
     self.call = None  # I suppose it is initialized here to make pylint happy
     self.__kwargs = kwargs
 
