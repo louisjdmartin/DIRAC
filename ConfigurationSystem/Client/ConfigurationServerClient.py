@@ -1,5 +1,4 @@
 """
-  Custom TornadoClient for Configuration System
   Used like a normal client, should be instanciated if and only if we use the configuration service
 
   Because of limitation with JSON some datas are encoded in base64
