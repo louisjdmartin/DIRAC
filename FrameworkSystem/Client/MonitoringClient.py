@@ -7,6 +7,7 @@ __RCSID__ = "$Id"
 
 import time
 import types
+import os
 
 import DIRAC
 from DIRAC import gConfig, gLogger, S_OK, S_ERROR
