@@ -51,7 +51,12 @@ class MonitoringFlusher( object ):
     if mc not in self.__mcList:
       self.__mcList.append( mc )
 
-gMonitoringFlusher = MonitoringFlusher()
+# USE_TORNADO_IOLOOP is defined by starting scripts
+if os.environ.get('USE_TORNADO_IOLOOP', 'false').lower() == 'true':
+  from DIRAC.FrameworkSystem.Client.MonitoringClientIOLoop import MonitoringFlusherTornado
+  gMonitoringFlusher = MonitoringFlusherTornado()
+else:
+  gMonitoringFlusher = MonitoringFlusher()
 
 class MonitoringClient( object ):
   """ It accumulates monitoring info from components before flushing using gMonitoringFlusher
@@ -68,6 +73,7 @@ class MonitoringClient( object ):
   COMPONENT_AGENT = "agent"
   COMPONENT_WEB = "web"
   COMPONENT_SCRIPT = "script"
+  COMPONENT_TORNADO = "tornado"
 
   __validMonitoringValues = ( types.IntType, types.LongType, types.FloatType )
 
@@ -132,6 +138,8 @@ class MonitoringClient( object ):
       self.setComponentName( 'WebApp' )
     elif self.sourceDict[ 'componentType' ] == self.COMPONENT_SCRIPT:
       self.cfgSection = "/Script"
+    elif self.sourceDict['componentType'] == self.COMPONENT_TORNADO:
+      self.cfgSection = "/Tornado"
     else:
       raise Exception( "Component type has not been defined" )
     gMonitoringFlusher.registerMonitoringClient( self )
