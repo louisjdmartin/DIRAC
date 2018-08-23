@@ -33,7 +33,7 @@ Internal structure
 - :py:class:`~DIRAC.Core.DISET.private.Service` and :py:class:`~DIRAC.Core.DISET.RequestHandler` are now merge into :py:class:`~DIRAC.TornadoServices.Server.TornadoService`
 - CallStack from S_ERROR are deleted for every error who happen before authentication.
 - Common config for all services, there is no more specific config/service
-- Server returns HTTP error codes like ``200 OK`` or ``401 Forbidden``. Not used by client for now but open possibility for usage with external services (like a REST API)
+- Server returns HTTP status codes like ``200 OK`` or ``401 Forbidden``. Not used by client for now but open possibility for usage with external services (like a REST API)
 
 How to write service
 ********************
@@ -57,13 +57,13 @@ Write a service is similar in tornado and diset. You have to define your method 
 Main changes in tornado are:
 
 - Service are initialized at first request
-- You **should not** write method called ``initialize`` because Tornado already use it, so the ``initialize`` from diset handlers became ``initialize_request``
+- You **should not** write method called ``initialize`` because Tornado already use it, so the ``initialize`` from diset handlers became ``initializeRequest``
 - infosDict, arguments of initializedHandler is not really the same as one from diset, all things relative to transport are removed, to write on the transport you can use self.write() but I recommend to avoid his usage, Tornado will encode and write what you return.
 - Variables likes ``types_yourMethod`` are ignored, but you can still define ``auth_yourMethod`` if you want.
 
 How to start server
 *******************
-The easy way, use ``DIRAC/TornadoService/script/tornado-start-all.py`` it will start all services registered in configuration ! To register a service you just have to add the service in the CS and ``Tornado = True``. It may look like this::
+The easy way, use ``DIRAC/TornadoService/script/tornado-start-all.py`` it will start all services registered in configuration ! To register a service you just have to add the service in the CS and ``Protocol = https``. It may look like this::
 
   Systems {
     DevInstance
@@ -98,8 +98,10 @@ But you can also control more settings by launching tornado yourself::
 Options availlable are:
 
 - services, should be a list, to start only these services
-- debug, True or False, activate debug mode of Tornado (includes autoreload) and SSL, for extra logs use -ddd in the command line
+- debugSSL, True or False, activate debug mode of Tornado (includes autoreload) and SSL, for extra logs use -ddd in the command line
 - port, int, if you want to override value from config. If it's also not defined in config, it use 443.
+
+This start method can bu usefull for developing new service or create starting script for a specific service, like the Configuration System (as master).
 
 ******
 Client
@@ -116,11 +118,36 @@ Client
    Requests [shape=polygon,sides=4]
    }
 
+This diagram present what is behind TornadoClient, but you should use :py:class:`DIRAC.Core.Base.Client` ! The new client integrate a selection system which select for you between HTTPS and DISET client. 
 
-When you invoque a RPC throught :py:class:`~DIRAC.TornadoServices.Client.TornadoClient` it returns server response and the rpcStub,
-rpcStub is a dictionnary with some informations about the Client. Interface and usages are the same as :py:class:`~DIRAC.Core.DISET.RPCClient`.
-So, you can also use :py:class:`~DIRAC.TornadoServices.Client.RPCClientSelector` instead of :py:class:`~DIRAC.TornadoServices.Client.TornadoClient`
-or :py:class:`~DIRAC.Core.DISET.RPCClient`. :py:class:`~DIRAC.TornadoServices.Client.RPCClientSelector` will choose for your the right client to use.
+In your client nodule when you inherit from :py:class:`DIRAC.Core.Base.Client` you can define `httpsClient` with another client, it can be usefull when you can't serialize some data in JSON. Here the step to create and use a JSON patch:
+
+- Create a class who inherit from :py:class:`~DIRAC.TornadoServices.Client.TornadoClient`
+- For every method who need a JSON patch create a method with the same name as the service
+- Use self.executeRPC to send / receive datas
+
+You can also see this example::
+
+  class ConfigurationServerJSON(TornadoClient):
+    """
+      The specific client for configuration system.
+      To avoid JSON limitation the HTTPS handler encode data in base64
+      before sending them, this class only decode the base64
+      An exception is made with CommitNewData wich ENCODE in base64
+    """
+    def getCompressedData(self):
+      """
+        Transmit request to service and get data in base64,
+        it decode base64 before returning
+
+        :returns str:Configuration data, compressed
+      """
+      retVal = self.executeRPC('getCompressedData')
+      if retVal['OK']:
+        retVal['Value'] = b64decode(retVal['Value'])
+      return retVal
+
+
 
 
 Behind :py:class:`~DIRAC.TornadoServices.Client.TornadoClient` the `requests <http://docs.python-requests.org/>`_ library sends a HTTP POST request with:
