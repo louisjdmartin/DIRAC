@@ -175,6 +175,7 @@ def test_configurationAutoUpdate(value1, value2):
   ### SETTING FIRST VALUE ###
   csapi.modifyValue("/DIRAC/Configuration/TestUpdateValue", value1)
   csapi.commitChanges()
+  
   # Wait for automatic refresh (+1 to be sure that request is done)
   time.sleep(gConfigurationData.getPropagationTime()+1)
   RPCClient("Framework/User").getTestValue()
